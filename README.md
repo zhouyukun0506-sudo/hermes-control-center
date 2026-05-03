@@ -6,7 +6,6 @@ A modern control interface for the Hermes AI Agent system, built with high-end a
 - **Control Center**: Instant start/stop for the Hermes core service.
 - **Activity Monitor**: Real-time CPU and Memory telemetry.
 - **Command Line**: Integrated PTY-driven terminal with silent resizing.
-- **Agent Hub**: One-click access to Mimo, Kimi, DeepSeek, and Gemini.
 - **Customization**: Support for multiple themes (Pantone-inspired) and typography settings.
 
 ## Getting Started
