@@ -14,6 +14,7 @@ const THEMES = [
 
 const FONTS = [
   { id: 'default', label: 'Inter', desc: 'Smooth modern sans-serif' },
+  { id: 'misans', label: 'MiSans', desc: 'Xiaomi clean sans-serif' },
   { id: 'mono', label: 'JetBrains Mono', desc: 'Monospace everything' },
   { id: 'apple', label: 'SF Pro', desc: 'Apple system font' },
 ];

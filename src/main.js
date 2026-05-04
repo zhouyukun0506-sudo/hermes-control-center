@@ -14,12 +14,17 @@ import { renderThemeCustomizer } from './components/theme_customizer.js';
 import { renderCalendar } from './components/calendar.js';
 import { applySavedSettings } from './components/settings.js';
 import { renderIframeWebUI } from './components/iframe_webui.js';
-import { renderIframe } from './components/iframe.js';
-import { renderIframeKimi } from './components/iframe_kimi.js';
-import { renderIframeDeepSeek } from './components/iframe_deepseek.js';
-import { renderIframeGemini } from './components/iframe_gemini.js';
+import { renderCustomIframe } from './components/custom_iframe.js';
+import { renderBrowserManager } from './components/browser_manager.js';
+import { renderComparisonSearch } from './components/comparison_search.js';
+import { renderFlipClock } from './components/flip_clock.js';
+import { initGlobalSearch } from './components/global_search.js';
+import { getCustomPages } from './utils/pageConfig.js';
+import { getShortcuts } from './utils/shortcuts.js';
 import { initQuickActions } from './components/quick_actions.js';
 import * as api from './api.js';
+import { initSplitView, renderSplitView } from './components/split_view.js';
+import { initGlobalChat } from './components/global_chat.js';
 
 // ── App State ──
 let currentPage = 'dashboard';
@@ -70,7 +75,7 @@ function rgbToHsl(r, g, b) {
 function applyVisuals() {
   const themeId = localStorage.getItem('hermes_theme') || 'default';
   const fontId = localStorage.getItem('hermes_font') || 'default';
-  const fonts = { 'default': 'font-default', 'terminal': 'font-terminal', 'square': 'font-square', 'mono': 'font-mono', 'roboto': 'font-roboto', 'apple': 'font-apple', 'dot': 'font-dot' };
+  const fonts = { 'default': 'font-default', 'terminal': 'font-terminal', 'square': 'font-square', 'mono': 'font-mono', 'roboto': 'font-roboto', 'apple': 'font-apple', 'dot': 'font-dot', 'misans': 'font-misans' };
 
   if (localStorage.getItem('hermes_accent_custom')) {
     // Custom colors — keep existing CSS var overrides
@@ -106,9 +111,85 @@ function initApp() {
     </div>`;
   const navEl = document.getElementById('sidebar');
   renderNav(navEl, { activePage: currentPage, status, onNavigate: navigate });
+  initSidebarResize();
   const ctx = { activePage: currentPage, status, onNavigate: navigate, onStatusChange: updateStatus };
   initQuickActions(ctx);
+  initSplitView();
+  initGlobalChat();
+  initMouseGlow();
   renderMain();
+}
+
+// ── Mouse Glow (subtle cursor-following radial gradient) ──
+function initMouseGlow() {
+  const glow = document.createElement('div');
+  glow.id = 'mouse-glow';
+  document.body.appendChild(glow);
+
+  let active = false;
+  document.addEventListener('mousemove', (e) => {
+    glow.style.left = e.clientX + 'px';
+    glow.style.top = e.clientY + 'px';
+    if (!active) {
+      active = true;
+      glow.classList.add('active');
+    }
+  });
+}
+
+// ── Sidebar Resize ──
+function initSidebarResize() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+
+  // Restore saved width — but only if sidebar is NOT collapsed
+  const isCollapsed = localStorage.getItem('hermes_sidebar_collapsed') === 'true';
+  if (!isCollapsed) {
+    const saved = localStorage.getItem('hermes_sidebar_width');
+    if (saved) {
+      sidebar.style.width = saved;
+      document.documentElement.style.setProperty('--sidebar-w', saved);
+    }
+  } else {
+    sidebar.style.width = '';
+    document.documentElement.style.setProperty('--sidebar-w', 'var(--sidebar-collapsed-w)');
+  }
+
+  // Create resize handle
+  const handle = document.createElement('div');
+  handle.className = 'sidebar-resize-handle';
+  sidebar.appendChild(handle);
+
+  let startX, startW;
+
+  handle.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    sidebar.classList.add('sidebar-resizing');
+
+    const onMove = (e) => {
+      const dx = e.clientX - startX;
+      const newW = Math.min(Math.max(startW + dx, 180), 400);
+      sidebar.style.width = newW + 'px';
+      document.documentElement.style.setProperty('--sidebar-w', newW + 'px');
+    };
+
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      sidebar.classList.remove('sidebar-resizing');
+      localStorage.setItem('hermes_sidebar_width', sidebar.style.width);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
 }
 
 function updateNavActive(page) {
@@ -123,8 +204,8 @@ function navigate(page, sessionId = null) {
   currentSessionId = sessionId;
 
   if (page === prevPage && !sessionId) {
-    const iframePages = ['mimo_plan', 'kimi_plan', 'deepseek', 'gemini', 'original_webui', 'terminal'];
-    if (iframePages.includes(page)) {
+    const iframePages = ['original_webui', 'terminal'];
+    if (iframePages.includes(page) || page.startsWith('custom_')) {
       renderMain();
     }
     return;
@@ -225,16 +306,52 @@ function updateSidebarStatus() {
   renderNav(navEl, { activePage: currentPage, status, onNavigate: navigate });
 }
 
+// Exposed for split_view and other sub-container rendering
+window.__renderPageToContainer = (pageId, container) => {
+  const ctx = { activePage: pageId, status, onNavigate: navigate, onStatusChange: updateStatus };
+  const customPages = getCustomPages();
+  const pageConfig = customPages.find(p => p.id === pageId);
+
+  switch (pageId) {
+    case 'dashboard': renderDashboard(container, ctx); break;
+    case 'terminal': renderTerminal(container); break;
+    case 'monitor': renderMonitor(container); break;
+    case 'settings': renderSettings(container); break;
+    case 'skills': renderSkills(container); break;
+    case 'memory': renderMemory(container); break;
+    case 'insights': renderInsights(container); break;
+    case 'models': renderModelExplorer(container); break;
+    case 'sessions': renderSessionManager(container); break;
+    case 'logs': renderLogViewer(container); break;
+    case 'calendar': renderCalendar(container, ctx); break;
+    case 'theme': renderThemeCustomizer(container); break;
+    case 'original_webui': renderIframeWebUI(container, currentSessionId); break;
+    case 'browser_pages': renderBrowserManager(container); break;
+    case 'comparison_search': renderComparisonSearch(container); break;
+    case 'flip_clock': renderFlipClock(container); break;
+    default:
+      if (pageConfig) renderCustomIframe(container, pageConfig);
+      break;
+  }
+};
+
 function renderMain() {
   const pageEl = document.getElementById('page-content');
   if (!pageEl) return;
 
   const ctx = { activePage: currentPage, status, onNavigate: navigate, onStatusChange: updateStatus };
 
+  // Track current page globally for browser_manager
+  window.__currentPage = currentPage;
+
   // Check tombstone cache — consume on use (will be re-saved on navigate away)
   const tombstone = tombstoneCache.get(currentPage);
   if (tombstone) tombstoneCache.delete(currentPage);
   if (tombstone) ctx.tombstone = tombstone;
+
+  // Page transition: remove old class, force reflow, add new
+  pageEl.classList.remove('page-enter');
+  void pageEl.offsetHeight;
 
   switch (currentPage) {
     case 'dashboard': renderDashboard(pageEl, ctx); break;
@@ -250,16 +367,33 @@ function renderMain() {
     case 'calendar': renderCalendar(pageEl, ctx); break;
     case 'theme': renderThemeCustomizer(pageEl); break;
     case 'original_webui': renderIframeWebUI(pageEl, currentSessionId); break;
-    case 'mimo_plan': renderIframe(pageEl); break;
-    case 'kimi_plan': renderIframeKimi(pageEl); break;
-    case 'deepseek': renderIframeDeepSeek(pageEl); break;
-    case 'gemini': renderIframeGemini(pageEl); break;
-    default: renderDashboard(pageEl, ctx);
+    case 'browser_pages': renderBrowserManager(pageEl); break;
+    case 'comparison_search': renderComparisonSearch(pageEl); break;
+    case 'flip_clock': renderFlipClock(pageEl); break;
+    case 'split_view': renderSplitView(pageEl); break;
+    default: {
+      // Check if it's a custom browser page
+      const customPages = getCustomPages();
+      const pageConfig = customPages.find(p => p.id === currentPage);
+      if (pageConfig) {
+        renderCustomIframe(pageEl, pageConfig);
+      } else {
+        renderDashboard(pageEl, ctx);
+      }
+      break;
+    }
   }
+
+  // Trigger page entrance animation
+  pageEl.classList.add('page-enter');
 }
 
 initApp();
+initGlobalSearch();
 window.__navigateTo = navigate;
+window.refreshNav = () => updateSidebarStatus();
+window.__openGlobalSearch = null;  // Will be set by global_search component
+window.__openGlobalChat = null;    // Will be set by global_chat component
 updateStatus();
 intervalId = setInterval(updateStatus, 5000);
 window.applyVisuals = applyVisuals;
@@ -278,19 +412,21 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // ── Keyboard shortcuts for quick page switching ──
-const SHORTCUT_MAP = {
-  '1': 'dashboard',
-  '2': 'terminal',
-  '3': 'original_webui',
-  '4': 'mimo_plan',
-  '5': 'kimi_plan',
-  '6': 'deepseek',
-  '7': 'gemini',
-  '8': 'settings',
-  '9': 'theme',
-  '0': 'calendar',
-};
+function buildShortcutMap() {
+  const shortcuts = getShortcuts();
+  const map = {};
+  Object.entries(shortcuts).forEach(([pageId, s]) => {
+    if (s.meta && s.key) map[s.key] = pageId;
+  });
+  // Map special names to internal actions
+  map._chat = shortcuts.global_chat?.meta ? shortcuts.global_chat?.key : null;
+  map._search = shortcuts.global_search?.meta ? shortcuts.global_search?.key : null;
+  return map;
+}
+let SHORTCUT_MAP = buildShortcutMap();
 document.addEventListener('keydown', (e) => {
+  // If shortcut capture is active in settings, don't interfere
+  if (window.__shortcutCaptureActive) return;
   // Don't hijack shortcuts when typing in inputs
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
   // Don't hijack when command palette is open
@@ -298,10 +434,27 @@ document.addEventListener('keydown', (e) => {
 
   const isMeta = e.metaKey || e.ctrlKey;
 
+  // Rebuild shortcut map so changes take effect
+  SHORTCUT_MAP = buildShortcutMap();
+
   // ⌘1-9 → direct page switch
   if (isMeta && SHORTCUT_MAP[e.key]) {
+    const target = SHORTCUT_MAP[e.key];
+    // Global search/chat work even when focused on inputs
+    if (target === '_search') {
+      e.preventDefault();
+      if (window.__openGlobalSearch) window.__openGlobalSearch();
+      return;
+    }
+    if (target === '_chat') {
+      e.preventDefault();
+      if (window.__openGlobalChat) window.__openGlobalChat();
+      return;
+    }
+    // Page navigation — skip if user is typing in input
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
     e.preventDefault();
-    navigate(SHORTCUT_MAP[e.key]);
+    navigate(target);
     return;
   }
 

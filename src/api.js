@@ -1,4 +1,4 @@
-// ── Hermes Control Center — API Client ──
+// ── Workbench — API Client ──
 
 const BASE = '';
 

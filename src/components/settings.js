@@ -1,5 +1,6 @@
 // ── Settings Component ──
 import { icons } from '../utils/icons.js';
+import { getShortcuts, saveShortcut, resetShortcuts } from '../utils/shortcuts.js';
 
 const SETTINGS = {
   glassIntensity: { key: 'hermes_glass_intensity', label: 'Glass Blur', desc: 'Frosted glass blur strength', type: 'range', min: 5, max: 30, step: 5, default: 15, suffix: 'px' },
@@ -36,7 +37,7 @@ export function renderSettings(container) {
         <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
           <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
             <div style="width: 28px; height: 28px; border-radius: 7px; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
-              ${icons.palette}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="15.5" r="2.5"/><circle cx="8.5" cy="15.5" r="2.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.04-.23-.29-.38-.63-.38-1.02 0-.83.67-1.5 1.5-1.5H16c3.31 0 6-2.69 6-6 0-5.5-4.5-9-10-9z"/></svg>
             </div>
             <div class="section-header" style="margin-bottom: 0;">
               <div style="font-weight: 700; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--text-main);">Appearance</div>
@@ -98,7 +99,7 @@ export function renderSettings(container) {
         <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
           <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
             <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #0a84ff, #64d2ff); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
-              ${icons.dashboard}
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
             </div>
             <div class="section-header" style="margin-bottom: 0;">
               <div style="font-weight: 700; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--text-main);">Interface</div>
@@ -126,7 +127,7 @@ export function renderSettings(container) {
         <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
           <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
             <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #bf5af2, #ff9f0a); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/></svg>
             </div>
             <div>
               <div style="font-weight: 700; font-size: 15px;">Quick Actions</div>
@@ -141,11 +142,30 @@ export function renderSettings(container) {
           </div>
         </div>
 
+        <!-- Keyboard Shortcuts -->
+        <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #bf5af2, #0a84ff); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01"/><path d="M10 8h.01"/><path d="M14 8h.01"/><path d="M18 8h.01"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/><path d="M7 16h10"/></svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 15px;">Keyboard Shortcuts</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Customize ⌘ key bindings</div>
+            </div>
+          </div>
+          <div id="shortcuts-list" style="padding: 8px 20px;">
+            ${renderShortcuts()}
+          </div>
+          <div style="padding: 0 20px 12px;">
+            <button id="shortcuts-reset" class="btn" style="font-size:11px;padding:4px 12px;background:rgba(255,255,255,0.06);">Reset to Defaults</button>
+          </div>
+        </div>
+
         <!-- Data -->
         <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
           <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
             <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #ff453a, #ff9f0a); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H3v16h18V4z"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
             </div>
             <div>
               <div style="font-weight: 700; font-size: 15px;">Data</div>
@@ -154,6 +174,15 @@ export function renderSettings(container) {
           </div>
 
           <div style="padding: 16px 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="settings-export" class="btn" style="flex:1; background:rgba(255,255,255,0.08);">
+              ↓ Export Settings
+            </button>
+            <button id="settings-import" class="btn" style="flex:1; background:rgba(255,255,255,0.08);">
+              ↑ Import Settings
+            </button>
+            <input type="file" id="settings-import-file" accept=".json" style="display:none;">
+          </div>
+          <div style="padding: 0 20px 16px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button id="settings-reset" class="btn" style="flex:1; background:rgba(255,69,58,0.2); color:#ff453a;">
               Reset All Settings
             </button>
@@ -164,10 +193,10 @@ export function renderSettings(container) {
         <div style="text-align: center; padding: 20px 0;">
           <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border-radius:8px;padding:8px 16px;">
             <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
-            <span style="color:var(--text-muted);font-size:12px;font-weight:500;">Hermes Control Center</span>
+            <span style="color:var(--text-muted);font-size:12px;font-weight:500;">Workbench</span>
             <span style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono);opacity:0.5;">v1.0.6</span>
           </div>
-          <div style="margin-top: 12px; font-size: 10px; color: var(--text-muted); opacity: 0.35; letter-spacing: 0.5px;">
+          <div style="margin-top: 12px; font-size: 10px; color: var(--text-muted); opacity: 0.50; letter-spacing: 0.5px;">
             Ethan_chou0956
           </div>
         </div>
@@ -229,21 +258,59 @@ export function renderSettings(container) {
         const track = label.querySelector('.settings-toggle-track');
         const knob = label.querySelector('.settings-toggle-knob');
         if (track) {
-          track.style.background = checked ? 'var(--accent)' : 'rgba(255,255,255,0.10)';
-          track.style.boxShadow = checked ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'inset 0 1px 2px rgba(0,0,0,0.3)';
+          track.style.background = checked ? '#007AFF' : 'rgba(120,120,128,0.32)';
+          track.style.boxShadow = `inset 0 1px 2px rgba(0,0,0,${checked ? '0.15' : '0.25'})`;
         }
         if (knob) {
           // Scale pulse for tactile feedback
           knob.style.transform = 'scale(1.15)';
           setTimeout(() => { knob.style.transform = 'scale(1)'; }, 150);
 
-          knob.style.left = checked ? '22px' : '2px';
+          knob.style.left = checked ? '29px' : '3px';
           knob.style.boxShadow = checked
-            ? '0 1px 4px rgba(187,38,73,0.35),0 1px 2px rgba(0,0,0,0.15)'
+            ? '0 1px 4px rgba(0,135,255,0.35),0 1px 2px rgba(0,0,0,0.15)'
             : '0 1px 4px rgba(0,0,0,0.35),0 1px 2px rgba(0,0,0,0.2)';
         }
       }
     });
+  });
+
+  // Export settings
+  container.querySelector('#settings-export').addEventListener('click', () => {
+    const keys = ['hermes_theme', 'hermes_font', 'hermes_accent_custom', 'hermes_accent', 'hermes_bg',
+      'hermes_sidebar_collapsed', 'hermes_browser_pages', 'hermes_nav_order',
+      'hermes_show_status_footer', 'hermes_compact_mode',
+      ...Object.values(SETTINGS).map(s => s.key)];
+    const data = {};
+    keys.forEach(k => {
+      const v = localStorage.getItem(k);
+      if (v !== null) data[k] = v;
+    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `hermes-settings-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  // Import settings
+  const fileInput = container.querySelector('#settings-import-file');
+  container.querySelector('#settings-import').addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result);
+        Object.entries(data).forEach(([k, v]) => localStorage.setItem(k, v));
+        location.reload();
+      } catch (err) {
+        alert('Invalid settings file: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
   });
 
   // Reset button with confirmation
@@ -270,7 +337,80 @@ export function renderSettings(container) {
       }, 3000);
     });
   }
+
+  // ── Shortcut capture ──
+  let listeningId = null;
+  container.querySelectorAll('.shortcut-key-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      listeningId = id;
+      window.__shortcutCaptureActive = true;
+      btn.textContent = '...';
+      btn.style.borderColor = 'var(--accent)';
+    });
+  });
+
+  // Only attach the capture listener once (module-level guard)
+  if (!document._shortcutCaptureAttached) {
+    document._shortcutCaptureAttached = true;
+    document.addEventListener('keydown', (e) => {
+      if (!container.isConnected) {
+        listeningId = null;
+        window.__shortcutCaptureActive = false;
+        return;
+      }
+      if (!listeningId) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const btn = container.querySelector(`.shortcut-key-btn[data-id="${listeningId}"]`);
+      if (e.key === 'Escape') {
+        const s = getShortcuts()[listeningId];
+        if (btn) btn.textContent = (s.meta ? '⌘' : '') + (s.key ? s.key.toUpperCase() : '...');
+        listeningId = null;
+        window.__shortcutCaptureActive = false;
+        if (btn) btn.style.borderColor = '';
+        return;
+      }
+      const binding = { key: e.key.toLowerCase(), meta: e.metaKey || e.ctrlKey };
+      saveShortcut(listeningId, binding);
+      if (btn) btn.textContent = (binding.meta ? '⌘' : '') + binding.key.toUpperCase();
+      if (btn) btn.style.borderColor = 'var(--online-color)';
+      setTimeout(() => { if (btn) btn.style.borderColor = ''; }, 500);
+      listeningId = null;
+      window.__shortcutCaptureActive = false;
+    });
+  }
+
+  container.querySelector('#shortcuts-reset').addEventListener('click', () => {
+    resetShortcuts();
+    const shortcutsList = container.querySelector('#shortcuts-list');
+    if (shortcutsList) shortcutsList.innerHTML = renderShortcuts();
+    // Re-attach capture listeners
+    container.querySelectorAll('.shortcut-key-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        listeningId = id;
+        window.__shortcutCaptureActive = true;
+        btn.textContent = '...';
+        btn.style.borderColor = 'var(--accent)';
+      });
+    });
+  });
 }
+
+function renderShortcuts() {
+  const shortcuts = getShortcuts();
+  return Object.entries(shortcuts).map(([id, s]) => `
+    <div class="shortcut-row" data-id="${id}" style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+      <span style="font-size:12px;color:var(--text-muted);">${escHtml(s.label)}</span>
+      <button class="shortcut-key-btn" data-id="${id}" style="min-width:60px;padding:3px 10px;border-radius:5px;border:0.5px solid rgba(255,255,255,0.1);background:var(--fill-quinary);color:var(--text-main);font-size:11px;font-family:var(--font-mono);cursor:pointer;transition:all .12s;text-align:center;">
+        ${s.meta ? '⌘' : ''}${s.key ? s.key.toUpperCase() : '...'}
+      </button>
+    </div>
+  `).join('');
+}
+
+function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 function renderSelectRow(setting) {
   const val = getVal(setting);
@@ -305,21 +445,21 @@ function renderToggleRow(setting) {
         <div style="font-size: 13px; font-weight: 500; margin-bottom: 2px;">${setting.label}</div>
         <div style="font-size: 11px; color: var(--text-muted);">${setting.desc}</div>
       </div>
-      <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;">
+      <label style="position:relative;display:inline-block;width:60px;height:28px;flex-shrink:0;cursor:pointer;">
         <input type="checkbox" class="settings-toggle-input" data-key="${setting.key}" ${val ? 'checked' : ''}
           style="opacity:0;width:0;height:0;position:absolute;"/>
         <span class="settings-toggle-track" style="
-          position:absolute;inset:0;border-radius:12px;
-          background:${val ? 'var(--accent)' : 'rgba(255,255,255,0.10)'};
-          box-shadow:${val ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'inset 0 1px 2px rgba(0,0,0,0.3)'};
-          transition:all .3s cubic-bezier(0.4,0,0.2,1);
+          position:absolute;inset:0;border-radius:14px;
+          background:${val ? '#007AFF' : 'rgba(120,120,128,0.32)'};
+          box-shadow:inset 0 1px 2px rgba(0,0,0,${val ? '0.15' : '0.25'});
+          transition:all .25s cubic-bezier(0.4,0,0.2,1);
         ">
           <span class="settings-toggle-knob" style="
-            position:absolute;top:2px;left:${val ? '22px' : '2px'};
-            width:20px;height:20px;border-radius:50%;
+            position:absolute;top:3px;left:${val ? '29px' : '3px'};
+            width:28px;height:22px;border-radius:11px;
             background:#ffffff;
-            transition:all .3s cubic-bezier(0.4,0,0.2,1);
-            box-shadow:${val ? '0 1px 4px rgba(187,38,73,0.35),0 1px 2px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.35),0 1px 2px rgba(0,0,0,0.2)'};
+            transition:all .25s cubic-bezier(0.4,0,0.2,1);
+            box-shadow:0 1px 3px rgba(0,0,0,0.2), 0 0 1px rgba(0,0,0,0.1);
           "></span>
         </span>
       </label>
@@ -343,7 +483,19 @@ function applySetting(key, val) {
       const isCollapsed = val === 'collapsed';
       localStorage.setItem('hermes_sidebar_collapsed', String(isCollapsed));
       const sidebar = document.getElementById('sidebar');
-      if (sidebar) sidebar.classList.toggle('sidebar-collapsed', isCollapsed);
+      if (sidebar) {
+        sidebar.classList.toggle('sidebar-collapsed', isCollapsed);
+        if (isCollapsed) {
+          sidebar.style.width = '';
+          document.documentElement.style.setProperty('--sidebar-w', 'var(--sidebar-collapsed-w)');
+        } else {
+          const saved = localStorage.getItem('hermes_sidebar_width');
+          if (saved) {
+            sidebar.style.width = saved;
+            document.documentElement.style.setProperty('--sidebar-w', saved);
+          }
+        }
+      }
       break;
     }
     case 'hermes_show_status_footer': {

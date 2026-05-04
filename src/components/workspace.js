@@ -8,7 +8,7 @@ let fileContent = null;
 
 export function renderWorkspace(container, { status }) {
   if (!status?.webui_running) {
-    container.innerHTML = `<div class="page"><div class="empty-state">${icons.folder}<h3>Hermes 未运行</h3><p>请先启动服务</p></div></div>`;
+    container.innerHTML = `<div class="page"><div class="empty-state">${icons.folder}<h3>服务未运行</h3><p>请先启动服务</p></div></div>`;
     return;
   }
 

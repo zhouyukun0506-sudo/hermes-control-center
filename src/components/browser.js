@@ -36,7 +36,7 @@ export function renderBrowser(container) {
       <div class="page">
         <div class="page-header">
           <h1 class="page-title">WORKSPACE_BROWSER</h1>
-          <p class="page-subtitle">No active workspaces found. Add one in Hermes WebUI.</p>
+          <p class="page-subtitle">No active workspaces found. Add one in the Core UI.</p>
         </div>
       </div>
     `;

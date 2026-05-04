@@ -17,8 +17,8 @@ export function renderChat(container, { status }) {
       <div class="page">
         <div class="empty-state">
           ${icons.chat}
-          <h3>Hermes 未运行</h3>
-          <p>请先在仪表盘启动 Hermes 服务</p>
+          <h3>服务未运行</h3>
+          <p>请先在仪表盘启动服务</p>
         </div>
       </div>`;
     return;
@@ -148,7 +148,7 @@ function renderMessages(container) {
 
     return `
       <div class="chat-msg ${isUser ? 'user' : 'assistant'}">
-        <div class="chat-msg-role">${isUser ? '👤 你' : '🤖 Hermes'}${tokens ? ` · ${tokens} tokens` : ''}</div>
+        <div class="chat-msg-role">${isUser ? '👤 你' : '🤖 Workbench'}${tokens ? ` · ${tokens} tokens` : ''}</div>
         <div class="chat-msg-body">${renderMarkdown(content)}</div>
       </div>`;
   }).join('');
@@ -226,7 +226,7 @@ function startStreamSSE(streamId, container) {
   typingEl.id = 'typing-indicator';
   typingEl.className = 'chat-msg assistant';
   typingEl.innerHTML = `
-    <div class="chat-msg-role">🤖 Hermes</div>
+    <div class="chat-msg-role">🤖 Workbench</div>
     <div class="chat-msg-body">
       <div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>
     </div>`;

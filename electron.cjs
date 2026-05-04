@@ -77,7 +77,7 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: 'Show Hermes',
+      label: 'Show Workbench',
       click: () => {
         if (mainWindow) {
           mainWindow.show();
@@ -98,7 +98,7 @@ function createTray() {
     },
   ]);
 
-  tray.setToolTip('Hermes Control Center');
+  tray.setToolTip('Workbench');
   tray.setContextMenu(contextMenu);
 
   // Click tray to show window

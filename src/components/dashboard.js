@@ -28,17 +28,17 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
         <!-- Hero Card -->
         <div class="card hero-card" style="margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; padding: 24px 28px;">
           <div style="z-index: 2;">
-            <div style="color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Hermes Core</div>
+            <div style="color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Workbench</div>
             <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; color: inherit;">
               ${online ? 'Systems Live' : 'System Paused'}
             </h2>
             <p style="color: var(--text-muted); font-size: 14px; max-width: 340px; line-height: 1.5; margin-bottom: 20px;">
-              ${online ? 'The Hermes AI environment is currently active and broadcasting on all local endpoints.' : 'The service is currently idle. Tap the broadcast control to initialize the environment.'}
+              ${online ? 'All services are active and running. Your workspace is ready.' : 'The service is currently idle. Tap the broadcast control to start.'}
             </p>
 
             <div style="display: flex; gap: 10px;">
               ${!online ? `
-                <button id="history-btn" class="glass-btn">
+                <button id="history-btn" class="glass-btn" style="border-radius: 20px; padding: 8px 20px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);">
                   Initialize WebUI
                 </button>
               ` : ''}
@@ -46,13 +46,13 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
           </div>
 
           <div id="power-btn" style="cursor: pointer; position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; z-index: 2; transition: transform 0.2s;">
-            <div class="pulse-ring" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 1.5px solid var(--accent); opacity: 0.2; animation: ${online ? 'pulse 2s infinite' : 'none'};"></div>
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: ${online ? 'var(--accent-gradient)' : 'var(--fill-quaternary)'}; display: flex; align-items: center; justify-content: center; transition: all 0.3s;">
-               <div style="color: ${online ? '#fff' : 'var(--text-muted)'};">
+            <div class="pulse-ring" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 1.5px solid ${online ? 'var(--accent)' : 'rgba(255,255,255,0.12)'}; opacity: ${online ? '0.2' : '0.5'}; animation: ${online ? 'pulse 2s infinite' : 'none'};"></div>
+            <div style="width: 56px; height: 56px; border-radius: 50%; background: ${online ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.04)'}; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: ${online ? '0 4px 16px rgba(0,135,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' : '0 2px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.05)'}; border: 1px solid ${online ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'};">
+               <div style="color: ${online ? '#fff' : 'var(--text-main)'};">
                  ${online ? `
                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>
                  ` : `
-                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 6v12l10-6z"></path></svg>
+                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5" fill="rgba(255,255,255,0.9)" stroke="none"></polygon></svg>
                  `}
                </div>
             </div>
@@ -85,8 +85,18 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
         <div id="console-host">
            ${consoleLines.length > 0 ? `<div class="console-output">${ansiToHtml(consoleLines.join('\n'))}</div>` : ''}
         </div>
-      </div>
-    </div>
+
+        <!-- Sticky Notes -->
+        <div class="notes-section" style="margin-top: 24px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <h3 style="font-size:17px;font-weight:600;letter-spacing:-0.2px;">Quick Notes</h3>
+            <button id="notes-add-btn" class="glass-btn" style="font-size:11px;padding:4px 10px;height:28px;">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Note
+            </button>
+          </div>
+          <div id="notes-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+        </div>
 
     <style>
       #power-btn:hover { transform: scale(1.04); }
@@ -104,6 +114,13 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
         overflow-y: auto;
         white-space: pre-wrap;
       }
+      .note-card { animation: fadeIn .2s ease; }
+      .note-card textarea {
+        resize: vertical; min-height: 48px; max-height: 200px;
+        background: transparent; border: none; outline: none;
+        color: var(--text-main); font-size: 12px; font-family: inherit; line-height: 1.5;
+      }
+      .note-card textarea::placeholder { color: var(--text-tertiary); }
     </style>
   `;
 
@@ -165,6 +182,61 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
       }
     });
   }
+
+  // ── Sticky Notes ──
+  const NOTES_KEY = 'hermes_notes';
+  function getNotes() { try { const r = localStorage.getItem(NOTES_KEY); return r ? JSON.parse(r) : []; } catch { return []; } }
+  function saveNotes(notes) { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }
+
+  function renderNotes() {
+    const list = container.querySelector('#notes-list');
+    if (!list) return;
+    const notes = getNotes();
+    if (notes.length === 0) {
+      list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-tertiary);font-size:12px;">No notes yet. Click "Add Note" to start.</div>';
+      return;
+    }
+    list.innerHTML = notes.map(n => `
+      <div class="note-card" data-id="${n.id}" style="background:var(--fill-quaternary);border-radius:8px;padding:10px 10px 6px;border:0.5px solid rgba(255,255,255,0.04);">
+        <textarea placeholder="Write something..." style="width:100%;">${escHtml(n.text)}</textarea>
+        <div style="display:flex;justify-content:flex-end;gap:4px;padding-top:4px;">
+          <button class="note-delete-btn" data-id="${n.id}" style="width:22px;height:22px;border:none;border-radius:4px;background:transparent;color:var(--text-tertiary);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;" title="Delete">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.note-card textarea').forEach(ta => {
+      const id = ta.closest('.note-card').dataset.id;
+      ta.addEventListener('input', () => {
+        const notes = getNotes();
+        const n = notes.find(n => n.id === id);
+        if (n) { n.text = ta.value; saveNotes(notes); }
+      });
+    });
+
+    list.querySelectorAll('.note-delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        saveNotes(getNotes().filter(n => n.id !== btn.dataset.id));
+        renderNotes();
+      });
+    });
+  }
+
+  container.querySelector('#notes-add-btn').addEventListener('click', () => {
+    const notes = getNotes();
+    notes.unshift({ id: 'note_' + Date.now(), text: '' });
+    saveNotes(notes);
+    renderNotes();
+    setTimeout(() => {
+      const first = container.querySelector('.note-card textarea');
+      if (first) first.focus();
+    }, 50);
+  });
+
+  renderNotes();
 }
 
 function updateConsole(container) {
@@ -177,6 +249,8 @@ function updateConsole(container) {
   el.innerHTML = ansiToHtml(consoleLines.join('\n'));
   el.scrollTop = el.scrollHeight;
 }
+
+function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
 function formatUptime(seconds) {
   if (!seconds) return '0s';
