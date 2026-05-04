@@ -52,6 +52,7 @@ function streamPost(path, onData) {
 export const ctrl = {
   status: () => fetchJSON('/ctrl/status'),
   start: (onData) => streamPost('/ctrl/start', onData),
+  startWebUI: (onData) => streamPost('/ctrl/start-webui', onData),
   stop: (onData) => streamPost('/ctrl/stop', onData),
   exec: (command) => postJSON('/ctrl/exec', { command }),
 };
@@ -88,7 +89,7 @@ export const skills = {
 
 export const memory = {
   read: () => fetchJSON('/api/memory'),
-  write: (content) => postJSON('/api/memory/write', { content }),
+  write: (section, content) => postJSON('/api/memory/write', { section, content }),
 };
 
 export const workspaces = {

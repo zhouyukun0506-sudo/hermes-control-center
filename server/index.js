@@ -9,7 +9,7 @@ import http from 'http';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = 3456;
-const HERMES_WEBUI = 'http://127.0.0.1:9119';
+const HERMES_WEBUI = 'http://localhost:8787';
 const HOME = process.env.HOME || process.env.USERPROFILE;
 const HERMES_UP = path.join(HOME, 'bin', 'hermes-up');
 const HERMES_KILL = path.join(HOME, 'bin', 'hermes-kill');
@@ -151,9 +151,97 @@ app.post('/ctrl/resize', (req, res) => {
   else res.status(503).json({ error: 'Not ready' });
 });
 
+// ── Direct File Browser (native fs, no webui needed) ──
+app.get('/ctrl/list', (req, res) => {
+  const dirPath = req.query.path || HOME;
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true }).map(d => ({
+      name: d.name,
+      type: d.isDirectory() ? 'directory' : 'file',
+      size: d.isFile() ? fs.statSync(path.join(dirPath, d.name)).size : 0,
+    }));
+    entries.sort((a, b) => {
+      if (a.type !== b.type) return a.type === 'directory' ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
+    res.json({ entries, path: dirPath });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/ctrl/file', (req, res) => {
+  const filePath = req.query.path;
+  if (!filePath) return res.status(400).json({ error: 'path required' });
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const stat = fs.statSync(filePath);
+    res.json({ content, name: path.basename(filePath), size: stat.size });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Calendar API (local JSON storage) ──
+const CALENDAR_FILE = path.join(HOME, '.hermes', 'calendar.json');
+
+function loadCalendar() {
+  try {
+    if (fs.existsSync(CALENDAR_FILE)) {
+      const raw = fs.readFileSync(CALENDAR_FILE, 'utf-8');
+      return JSON.parse(raw);
+    }
+  } catch {}
+  return { events: [] };
+}
+
+function saveCalendar(data) {
+  const dir = path.dirname(CALENDAR_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(CALENDAR_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+app.get('/api/calendar', (req, res) => {
+  const data = loadCalendar();
+  const month = req.query.month; // "2026-05"
+  if (month) {
+    data.events = data.events.filter(e => e.date && e.date.startsWith(month));
+  }
+  res.json(data);
+});
+
+app.post('/api/calendar/add', (req, res) => {
+  const { title, date, time, description, remind, subject, type } = req.body;
+  if (!title || !date) return res.status(400).json({ error: 'title and date required' });
+  const data = loadCalendar();
+  const event = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    title,
+    date,
+    time: time || '',
+    description: description || '',
+    subject: subject || '',
+    type: type || '',
+    remind: !!remind,
+    createdAt: Date.now(),
+  };
+  data.events.push(event);
+  saveCalendar(data);
+  res.json({ success: true, event });
+});
+
+app.post('/api/calendar/delete', (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ error: 'id required' });
+  const data = loadCalendar();
+  data.events = data.events.filter(e => e.id !== id);
+  saveCalendar(data);
+  res.json({ success: true });
+});
+
 app.use(createProxyMiddleware({
   pathFilter: '/api', target: HERMES_WEBUI, changeOrigin: true,
-  on: { proxyReq: (p) => { p.setHeader('Origin', HERMES_WEBUI); p.setHeader('Host', '127.0.0.1:9119'); } }
+  on: { proxyReq: (p) => { p.setHeader('Origin', HERMES_WEBUI); p.setHeader('Host', 'localhost:8787'); } }
 }));
 
 const distPath = path.join(__dirname, '..', 'dist');

@@ -1,12 +1,13 @@
-const { app, BrowserWindow, session } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, session } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 
 let mainWindow;
 let backendProcess;
+let tray = null;
+let isQuitting = false;
 
 function startBackend() {
-  // Start the Node.js Express server backend
   const backendPath = path.join(__dirname, 'server', 'index.js');
   backendProcess = spawn('node', [backendPath], {
     stdio: 'inherit',
@@ -17,40 +18,102 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
+    transparent: true,
+    titleBarStyle: 'hidden',
+    trafficLightPosition: { x: 18, y: 18 },
+    backgroundColor: '#00000000',
+    hasShadow: true,
+    roundedCorners: true,
     webPreferences: {
       webSecurity: false,
       partition: 'persist:hermes',
       contextIsolation: false,
       nodeIntegration: true,
-      webviewTag: true
-    }
+      webviewTag: true,
+    },
   });
 
-  // Remove X-Frame-Options and CSP to allow embedding ANY site
+  // Remove headers that block iframing
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const responseHeaders = { ...details.responseHeaders };
-    
-    // Delete headers that block iframing (case-insensitive)
     for (const key of Object.keys(responseHeaders)) {
       const lowerKey = key.toLowerCase();
-      if (lowerKey === 'x-frame-options' || 
-          lowerKey === 'content-security-policy' || 
+      if (lowerKey === 'x-frame-options' ||
+          lowerKey === 'content-security-policy' ||
           lowerKey === 'cross-origin-resource-policy' ||
           lowerKey === 'cross-origin-embedder-policy') {
         delete responseHeaders[key];
       }
     }
-
     callback({ cancel: false, responseHeaders });
   });
 
-  // Give the backend a second to start
+  // ── Tombstone: hide instead of close ──
+  mainWindow.on('close', (event) => {
+    if (!isQuitting) {
+      event.preventDefault();
+      mainWindow.hide();
+      // Free GPU resources while tombstoned
+      if (mainWindow.webContents) {
+        mainWindow.webContents.setBackgroundThrottling(true);
+      }
+    }
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
   setTimeout(() => {
     mainWindow.loadURL('http://127.0.0.1:3456');
   }, 1000);
+}
 
-  mainWindow.on('closed', function () {
-    mainWindow = null;
+// ── Tray: tombstone indicator + restore ──
+function createTray() {
+  const iconPath = path.join(__dirname, 'public', 'logo.png');
+  const trayIcon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
+  tray = new Tray(trayIcon);
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: 'Show Hermes',
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.setBackgroundThrottling(false);
+        } else {
+          createWindow();
+        }
+      },
+    },
+    { type: 'separator' },
+    {
+      label: 'Quit',
+      click: () => {
+        isQuitting = true;
+        app.quit();
+      },
+    },
+  ]);
+
+  tray.setToolTip('Hermes Control Center');
+  tray.setContextMenu(contextMenu);
+
+  // Click tray to show window
+  tray.on('click', () => {
+    if (mainWindow) {
+      if (mainWindow.isVisible()) {
+        mainWindow.focus();
+      } else {
+        mainWindow.show();
+        mainWindow.focus();
+        mainWindow.webContents.setBackgroundThrottling(false);
+      }
+    } else {
+      createWindow();
+    }
   });
 }
 
@@ -60,14 +123,27 @@ app.commandLine.appendSwitch('disable-site-isolation-trials');
 app.whenReady().then(() => {
   startBackend();
   createWindow();
+  createTray();
 
-  app.on('activate', function () {
-    if (mainWindow === null) createWindow();
+  // macOS: clicking dock icon restores window
+  app.on('activate', () => {
+    if (mainWindow) {
+      mainWindow.show();
+      mainWindow.focus();
+      mainWindow.webContents.setBackgroundThrottling(false);
+    } else {
+      createWindow();
+    }
   });
 });
 
-app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') app.quit();
+app.on('window-all-closed', () => {
+  // Don't quit on macOS when all windows closed (tombstone)
+  // On other platforms, still keep running in tray
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
 });
 
 app.on('quit', () => {

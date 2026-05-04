@@ -47,7 +47,7 @@ export function renderBrowser(container) {
       <div class="page">
         <div class="page-header">
           <h1 class="page-title">BROWSER_ERROR</h1>
-          <p class="page-subtitle" style="color: var(--accent-red);">${msg}</p>
+          <p class="page-subtitle" style="color: var(--error-color);">${msg}</p>
         </div>
       </div>
     `;
@@ -59,7 +59,7 @@ export function renderBrowser(container) {
         <div class="page-header">
           <h1 class="page-title">WORKSPACE_BROWSER</h1>
           <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-            <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); background:#111; padding:4px 8px; border:1px solid var(--border-dim); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); background:var(--fill-quinary); padding:4px 8px; border:0.5px solid var(--fill-quaternary); border-radius:6px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
               ${currentDir}
             </div>
             <button id="btn-up" class="btn" style="padding:4px 8px;">UP</button>
@@ -67,17 +67,17 @@ export function renderBrowser(container) {
         </div>
 
         <div class="card" style="flex:1; overflow-y:auto; padding:0;">
-          <table style="width:100%; border-collapse:collapse; font-family:var(--font-ui); font-size:13px;">
-            <thead style="background:var(--bg-secondary); border-bottom:2px solid var(--border-dim); position:sticky; top:0; z-index:5;">
+          <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead style="background:var(--fill-quinary); border-bottom:0.5px solid var(--fill-quaternary); position:sticky; top:0; z-index:5;">
               <tr>
-                <th style="text-align:left; padding:12px; font-family:var(--font-header); font-size:8px;">NAME</th>
-                <th style="text-align:left; padding:12px; font-family:var(--font-header); font-size:8px;">TYPE</th>
-                <th style="text-align:right; padding:12px; font-family:var(--font-header); font-size:8px;">SIZE</th>
+                <th style="text-align:left; padding:10px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted);">NAME</th>
+                <th style="text-align:left; padding:10px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted);">TYPE</th>
+                <th style="text-align:right; padding:10px 12px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted);">SIZE</th>
               </tr>
             </thead>
             <tbody>
               ${items.map(item => `
-                <tr class="browser-row" data-path="${item.path}" data-type="${item.type}" style="border-bottom:1px solid #111; cursor:pointer;">
+                <tr class="browser-row" data-path="${item.path}" data-type="${item.type}" style="border-bottom:0.5px solid var(--fill-quaternary); cursor:pointer;">
                   <td style="padding:10px 12px; display:flex; align-items:center; gap:8px;">
                     <span style="color: ${item.type === 'directory' ? 'var(--accent)' : 'var(--text-muted)'};">
                       ${item.type === 'directory' ? icons.folder : icons.file}

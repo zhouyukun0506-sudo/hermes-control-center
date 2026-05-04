@@ -1,90 +1,409 @@
-// ── Settings Component (v1.0.5) ──
+// ── Settings Component ──
+import { icons } from '../utils/icons.js';
 
-const THEMES = [
-  { id: 'default', label: 'Apple Music Red', colors: ['#fa243c', '#000000'] },
-  { id: 'matrix', label: 'Midnight Green', colors: ['#32d74b', '#1c1c1e'] },
-  { id: 'vapor', label: 'Vibrant Pink', colors: ['#ff375f', '#1c1c1e'] },
-  { id: 'white', label: 'Clean White', colors: ['#ffffff', '#f2f2f7'] },
-];
+const SETTINGS = {
+  glassIntensity: { key: 'hermes_glass_intensity', label: 'Glass Blur', desc: 'Frosted glass blur strength', type: 'range', min: 5, max: 30, step: 5, default: 15, suffix: 'px' },
+  glassOpacity: { key: 'hermes_glass_opacity', label: 'Glass Transparency', desc: 'Panel background visibility', type: 'range', min: 10, max: 100, step: 5, default: 100, suffix: '%' },
+  animationSpeed: { key: 'hermes_animation_speed', label: 'Animation Speed', desc: 'UI motion intensity', type: 'select', options: ['none', 'reduced', 'normal'], default: 'normal' },
+  sidebarDefault: { key: 'hermes_sidebar_default', label: 'Sidebar Default', desc: 'Startup sidebar state', type: 'select', options: ['expanded', 'collapsed'], default: 'expanded' },
+  showStatusFooter: { key: 'hermes_show_status_footer', label: 'Status Footer', desc: 'Show GW/UI status in sidebar', type: 'toggle', default: true },
+  pollInterval: { key: 'hermes_poll_interval', label: 'Status Refresh', desc: 'How often to check service status', type: 'select', options: ['2s', '5s', '10s', '30s'], default: '5s' },
+  compactMode: { key: 'hermes_compact_mode', label: 'Compact Mode', desc: 'Tighter spacing in cards and panels', type: 'toggle', default: false },
+};
 
-const FONTS = [
-  { id: 'default', label: 'System Default (Inter)', class: 'font-default' },
-  { id: 'mono', label: 'Developer Mono (JetBrains)', class: 'font-mono' },
-  { id: 'apple', label: 'Apple Standard (San Francisco)', class: 'font-apple' },
-];
+function getVal(setting) {
+  const v = localStorage.getItem(setting.key);
+  if (v === null) return setting.default;
+  if (setting.type === 'toggle') return v === 'true';
+  if (setting.type === 'range') return parseInt(v, 10);
+  return v;
+}
+
+function setVal(key, val) {
+  localStorage.setItem(key, String(val));
+}
 
 export function renderSettings(container) {
-  const currentTheme = localStorage.getItem('hermes_theme') || 'default';
-  const currentFont = localStorage.getItem('hermes_font') || 'default';
-
   container.innerHTML = `
     <div class="page">
       <div class="page-padded">
-        <div style="margin-bottom: 30px;">
-          <h1 style="font-size: 32px; font-weight: 800; letter-spacing: -1px; margin-bottom: 4px;">Settings</h1>
-          <div style="width: 40px; height: 4px; background: var(--accent); border-radius: 2px;"></div>
+        <div class="page-header">
+          <h1 class="page-title">Settings</h1>
+          <div class="page-accent-bar"></div>
         </div>
 
-        <!-- Appearance Section -->
-        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; margin-left: 4px;">Appearance</h3>
-        <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
-          ${THEMES.map((theme, index) => `
-            <div class="settings-row ${currentTheme === theme.id ? 'active' : ''}" data-theme="${theme.id}" style="padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-bottom: ${index === THEMES.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)'}; transition: background 0.2s;">
-              <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 20px; height: 20px; border-radius: 50%; background: linear-gradient(135deg, ${theme.colors[0]}, ${theme.colors[1]}); border: 2px solid rgba(255,255,255,0.1);"></div>
-                <span style="font-size: 15px; font-weight: 500;">${theme.label}</span>
+        <!-- Appearance -->
+        <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 7px; background: var(--accent-gradient); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
+              ${icons.palette}
+            </div>
+            <div class="section-header" style="margin-bottom: 0;">
+              <div style="font-weight: 700; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--text-main);">Appearance</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0;">Theme, glass, animations</div>
+            </div>
+          </div>
+
+          <!-- Theme shortcut -->
+          <div class="settings-row" style="padding: 12px 20px; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <div>
+              <div style="font-size: 13px; font-weight: 500; margin-bottom: 2px;">Theme & Colors</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Presets, accent, fonts & backgrounds</div>
+            </div>
+            <button id="settings-open-theme" class="btn" style="background:var(--accent-gradient);">
+              Open Customizer
+            </button>
+          </div>
+
+          <!-- Glass Blur -->
+          <div class="settings-row" style="padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 500; margin-bottom: 2px;">${SETTINGS.glassIntensity.label}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${SETTINGS.glassIntensity.desc}</div>
               </div>
-              ${currentTheme === theme.id ? '<div style="color: var(--accent);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>' : ''}
+              <span class="settings-glass-value" style="font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--accent);min-width:40px;text-align:right;">${getVal(SETTINGS.glassIntensity)}px</span>
             </div>
-          `).join('')}
+            <input type="range" min="${SETTINGS.glassIntensity.min}" max="${SETTINGS.glassIntensity.max}" step="${SETTINGS.glassIntensity.step}" value="${getVal(SETTINGS.glassIntensity)}"
+              class="settings-glass-slider"
+            />
+          </div>
+
+          <!-- Glass Transparency -->
+          <div class="settings-row" style="padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+              <div>
+                <div style="font-size: 13px; font-weight: 500; margin-bottom: 2px;">${SETTINGS.glassOpacity.label}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${SETTINGS.glassOpacity.desc}</div>
+              </div>
+              <span class="settings-glass-opacity-value" style="font-size:13px;font-weight:600;font-family:var(--font-mono);color:var(--accent);min-width:40px;text-align:right;">${getVal(SETTINGS.glassOpacity)}%</span>
+            </div>
+            <input type="range" min="${SETTINGS.glassOpacity.min}" max="${SETTINGS.glassOpacity.max}" step="${SETTINGS.glassOpacity.step}" value="${getVal(SETTINGS.glassOpacity)}"
+              class="settings-glass-opacity-slider"
+            />
+          </div>
+
+          <!-- Animation Speed -->
+          <div class="settings-row" style="padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            ${renderSelectRow(SETTINGS.animationSpeed)}
+          </div>
+
+          <!-- Sidebar Default -->
+          <div class="settings-row" style="padding: 12px 20px;">
+            ${renderSelectRow(SETTINGS.sidebarDefault)}
+          </div>
         </div>
 
-        <!-- Typography Section -->
-        <h3 style="font-size: 13px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; margin-left: 4px;">Typography</h3>
-        <div class="card" style="padding: 0; overflow: hidden; margin-bottom: 30px;">
-          ${FONTS.map((font, index) => `
-            <div class="settings-row ${currentFont === font.id ? 'active' : ''}" data-font="${font.id}" style="padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; border-bottom: ${index === FONTS.length - 1 ? 'none' : '1px solid rgba(255,255,255,0.05)'}; transition: background 0.2s;">
-              <span style="font-size: 15px; font-weight: 500;">${font.label}</span>
-              <span style="font-size: 13px; color: var(--text-muted); font-family: ${getFontFamily(font.id)};">Sample Text</span>
+        <!-- Interface -->
+        <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #0a84ff, #64d2ff); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
+              ${icons.dashboard}
             </div>
-          `).join('')}
+            <div class="section-header" style="margin-bottom: 0;">
+              <div style="font-weight: 700; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--text-main);">Interface</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 400; text-transform: none; letter-spacing: 0;">Layout, polling, compact mode</div>
+            </div>
+          </div>
+
+          <!-- Compact Mode -->
+          <div class="settings-row" style="padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            ${renderToggleRow(SETTINGS.compactMode)}
+          </div>
+
+          <!-- Status Footer -->
+          <div class="settings-row" style="padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            ${renderToggleRow(SETTINGS.showStatusFooter)}
+          </div>
+
+          <!-- Poll Interval -->
+          <div class="settings-row" style="padding: 12px 20px;">
+            ${renderSelectRow(SETTINGS.pollInterval)}
+          </div>
         </div>
 
-        <div style="text-align: center; color: var(--text-muted); font-size: 12px; margin-top: 40px;">
-          Hermes Control Center v1.0.5-Preview
+        <!-- Quick Actions -->
+        <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #bf5af2, #ff9f0a); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 15px;">Quick Actions</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Toolbar and command palette</div>
+            </div>
+          </div>
+
+          <div style="padding: 16px 20px; text-align: center; color: var(--text-muted); font-size: 12px;">
+            <kbd style="padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.08);font-family:var(--font-mono);font-size:11px;">⌘K</kbd>
+            <span style="margin:0 8px;">to open command palette ·</span>
+            <span style="opacity:0.6;">All actions available in the toolbar</span>
+          </div>
+        </div>
+
+        <!-- Data -->
+        <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #ff453a, #ff9f0a); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H3v16h18V4z"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 15px;">Data</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Manage settings and storage</div>
+            </div>
+          </div>
+
+          <div style="padding: 16px 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+            <button id="settings-reset" class="btn" style="flex:1; background:rgba(255,69,58,0.2); color:#ff453a;">
+              Reset All Settings
+            </button>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div style="text-align: center; padding: 20px 0;">
+          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border-radius:8px;padding:8px 16px;">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
+            <span style="color:var(--text-muted);font-size:12px;font-weight:500;">Hermes Control Center</span>
+            <span style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono);opacity:0.5;">v1.0.6</span>
+          </div>
+          <div style="margin-top: 12px; font-size: 10px; color: var(--text-muted); opacity: 0.35; letter-spacing: 0.5px;">
+            Ethan_chou0956
+          </div>
         </div>
       </div>
     </div>
-
-    <style>
-      .settings-row:hover { background: rgba(255, 255, 255, 0.05); }
-      .settings-row.active { background: rgba(250, 36, 60, 0.05); }
-    </style>
   `;
 
-  // Theme click
-  container.querySelectorAll('[data-theme]').forEach(el => {
-    el.addEventListener('click', () => {
-      const themeId = el.dataset.theme;
-      localStorage.setItem('hermes_theme', themeId);
-      if (window.applyVisuals) window.applyVisuals();
-      renderSettings(container);
+  // ── Event handlers ──
+
+  // Theme customizer
+  container.querySelector('#settings-open-theme').addEventListener('click', () => {
+    window.__navigateTo && window.__navigateTo('theme');
+  });
+
+  // Glass blur slider
+  const blurSlider = container.querySelector('.settings-glass-slider');
+  const blurVal = container.querySelector('.settings-glass-value');
+  if (blurSlider) {
+    blurSlider.addEventListener('input', () => {
+      const v = blurSlider.value;
+      blurVal.textContent = v + 'px';
+      setVal(SETTINGS.glassIntensity.key, v);
+      document.documentElement.style.setProperty('--glass-blur', `blur(${v}px)`);
+    });
+  }
+
+  // Glass opacity slider
+  const opacitySlider = container.querySelector('.settings-glass-opacity-slider');
+  const opacityVal = container.querySelector('.settings-glass-opacity-value');
+  if (opacitySlider) {
+    opacitySlider.addEventListener('input', () => {
+      const v = opacitySlider.value;
+      opacityVal.textContent = v + '%';
+      setVal(SETTINGS.glassOpacity.key, v);
+      applyGlassOpacity(parseInt(v) / 100);
+    });
+  }
+
+  // Select dropdowns
+  container.querySelectorAll('.settings-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      setVal(sel.dataset.key, sel.value);
+      applySetting(sel.dataset.key, sel.value);
+      // Brief pulse for lively feedback
+      sel.style.transform = 'scale(1.04)';
+      setTimeout(() => { sel.style.transform = 'scale(1)'; }, 120);
     });
   });
 
-  // Font click
-  container.querySelectorAll('[data-font]').forEach(el => {
-    el.addEventListener('click', () => {
-      const fontId = el.dataset.font;
-      localStorage.setItem('hermes_font', fontId);
-      if (window.applyVisuals) window.applyVisuals();
-      renderSettings(container);
+  // Toggle switches
+  container.querySelectorAll('.settings-toggle-input').forEach(tog => {
+    tog.addEventListener('change', () => {
+      const checked = tog.checked;
+      setVal(tog.dataset.key, checked);
+      applySetting(tog.dataset.key, checked);
+      // Update toggle visual (track background + knob position)
+      const label = tog.closest('label');
+      if (label) {
+        const track = label.querySelector('.settings-toggle-track');
+        const knob = label.querySelector('.settings-toggle-knob');
+        if (track) {
+          track.style.background = checked ? 'var(--accent)' : 'rgba(255,255,255,0.10)';
+          track.style.boxShadow = checked ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'inset 0 1px 2px rgba(0,0,0,0.3)';
+        }
+        if (knob) {
+          // Scale pulse for tactile feedback
+          knob.style.transform = 'scale(1.15)';
+          setTimeout(() => { knob.style.transform = 'scale(1)'; }, 150);
+
+          knob.style.left = checked ? '22px' : '2px';
+          knob.style.boxShadow = checked
+            ? '0 1px 4px rgba(187,38,73,0.35),0 1px 2px rgba(0,0,0,0.15)'
+            : '0 1px 4px rgba(0,0,0,0.35),0 1px 2px rgba(0,0,0,0.2)';
+        }
+      }
     });
   });
+
+  // Reset button with confirmation
+  const resetBtn = container.querySelector('#settings-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (resetBtn.dataset.confirm) {
+        // Second click — actually reset
+        const keys = Object.values(SETTINGS).map(s => s.key);
+        keys.forEach(k => localStorage.removeItem(k));
+        // Reset CSS vars
+        document.documentElement.style.removeProperty('--glass-blur');
+        ['--glass-bg-light','--glass-bg-dark','--glass-bg-dark-hero','--glass-card-light','--glass-card-dark','--glass-btn','--glass-subtle','--glass-bar','--glass-content'].forEach(k => document.documentElement.style.removeProperty(k));
+        location.reload();
+        return;
+      }
+      resetBtn.dataset.confirm = 'true';
+      resetBtn.textContent = 'Confirm Reset?';
+      resetBtn.style.background = 'rgba(255,69,58,0.35)';
+      setTimeout(() => {
+        delete resetBtn.dataset.confirm;
+        resetBtn.textContent = 'Reset All Settings';
+        resetBtn.style.background = 'rgba(255,69,58,0.15)';
+      }, 3000);
+    });
+  }
 }
 
-function getFontFamily(id) {
-  if (id === 'mono') return "'JetBrains Mono'";
-  if (id === 'apple') return "-apple-system, BlinkMacSystemFont, sans-serif";
-  return 'inherit';
+function renderSelectRow(setting) {
+  const val = getVal(setting);
+  return `
+    <div class="settings-row" style="display:grid;grid-template-columns:1fr 120px;align-items:center;gap:14px;padding:12px 20px;">
+      <div>
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 2px;">${setting.label}</div>
+        <div style="font-size: 11px; color: var(--text-muted);">${setting.desc}</div>
+      </div>
+      <select class="settings-select" data-key="${setting.key}"
+        style="padding:0 24px 0 10px; border-radius:8px; border:0.5px solid rgba(255,255,255,0.10);
+          height:32px; width:100%; background:rgba(0,0,0,0.25); color:var(--text-main); font-size:12px; font-weight:500;
+          font-family:inherit; outline:none; cursor:pointer; appearance:none;
+          background-image:url('data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%276%27%3E%3Cpath d=%27M0 0l5 6 5-6%27 fill=%27none%27 stroke=%27rgba(255,255,255,0.5)%27 stroke-width=%271.5%27/%3E%3C/svg%3E');
+          background-repeat:no-repeat; background-position:right 8px center;
+          transition:border-color .15s;
+        "
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='rgba(255,255,255,0.10)'">
+        ${setting.options.map(o =>
+          `<option value="${o}" ${val === o ? 'selected' : ''}>${o}</option>`
+        ).join('')}
+      </select>
+    </div>
+  `;
+}
+
+function renderToggleRow(setting) {
+  const val = getVal(setting);
+  return `
+    <div class="settings-row" style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;padding:12px 20px;">
+      <div>
+        <div style="font-size: 13px; font-weight: 500; margin-bottom: 2px;">${setting.label}</div>
+        <div style="font-size: 11px; color: var(--text-muted);">${setting.desc}</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer;">
+        <input type="checkbox" class="settings-toggle-input" data-key="${setting.key}" ${val ? 'checked' : ''}
+          style="opacity:0;width:0;height:0;position:absolute;"/>
+        <span class="settings-toggle-track" style="
+          position:absolute;inset:0;border-radius:12px;
+          background:${val ? 'var(--accent)' : 'rgba(255,255,255,0.10)'};
+          box-shadow:${val ? 'inset 0 1px 0 rgba(255,255,255,0.2)' : 'inset 0 1px 2px rgba(0,0,0,0.3)'};
+          transition:all .3s cubic-bezier(0.4,0,0.2,1);
+        ">
+          <span class="settings-toggle-knob" style="
+            position:absolute;top:2px;left:${val ? '22px' : '2px'};
+            width:20px;height:20px;border-radius:50%;
+            background:#ffffff;
+            transition:all .3s cubic-bezier(0.4,0,0.2,1);
+            box-shadow:${val ? '0 1px 4px rgba(187,38,73,0.35),0 1px 2px rgba(0,0,0,0.15)' : '0 1px 4px rgba(0,0,0,0.35),0 1px 2px rgba(0,0,0,0.2)'};
+          "></span>
+        </span>
+      </label>
+    </div>
+  `;
+}
+
+function applySetting(key, val) {
+  switch (key) {
+    case 'hermes_animation_speed':
+      document.body.classList.remove('anim-none', 'anim-reduced');
+      if (val === 'none') document.body.classList.add('anim-none');
+      if (val === 'reduced') {
+        document.body.classList.add('anim-reduced');
+        document.body.style.setProperty('--anim-speed', '0.08s');
+      } else {
+        document.body.style.removeProperty('--anim-speed');
+      }
+      break;
+    case 'hermes_sidebar_default': {
+      const isCollapsed = val === 'collapsed';
+      localStorage.setItem('hermes_sidebar_collapsed', String(isCollapsed));
+      const sidebar = document.getElementById('sidebar');
+      if (sidebar) sidebar.classList.toggle('sidebar-collapsed', isCollapsed);
+      break;
+    }
+    case 'hermes_show_status_footer': {
+      const show = val === true || val === 'true';
+      localStorage.setItem('hermes_show_status_footer', String(show));
+      const footer = document.querySelector('.status-footer-text');
+      if (footer) {
+        footer.style.display = show ? '' : 'none';
+      } else if (show && window.__navigateTo) {
+        // Footer not in DOM — re-render via nav to rebuild sidebar
+        const activeNav = document.querySelector('.nav-item.active');
+        const page = activeNav ? activeNav.dataset.page : 'dashboard';
+        window.__navigateTo(page);
+      }
+      break;
+    }
+    case 'hermes_compact_mode':
+      document.body.classList.toggle('compact-mode', val === true || val === 'true');
+      break;
+  }
+}
+
+// Apply saved settings on load
+export function applySavedSettings() {
+  const blur = localStorage.getItem('hermes_glass_intensity');
+  if (blur) document.documentElement.style.setProperty('--glass-blur', `blur(${blur}px)`);
+
+  const opacity = localStorage.getItem('hermes_glass_opacity');
+  if (opacity) applyGlassOpacity(parseInt(opacity) / 100);
+
+  const anim = localStorage.getItem('hermes_animation_speed');
+  if (anim && anim !== 'normal') {
+    document.body.classList.add(`anim-${anim}`);
+  }
+
+  // Seed sidebar state from sidebarDefault if not already set
+  const sidebarDefault = localStorage.getItem('hermes_sidebar_default');
+  if (sidebarDefault && !localStorage.getItem('hermes_sidebar_collapsed')) {
+    if (sidebarDefault === 'collapsed') {
+      localStorage.setItem('hermes_sidebar_collapsed', 'true');
+    }
+  }
+
+  if (localStorage.getItem('hermes_compact_mode') === 'true') {
+    document.body.classList.add('compact-mode');
+  }
+}
+
+// Glass opacity: dim (0.0–1.0) scales panel background alpha values
+function applyGlassOpacity(dim) {
+  const set = (key, r, g, b, a) => {
+    document.documentElement.style.setProperty(key, `rgba(${r},${g},${b},${(a * dim).toFixed(3)})`);
+  };
+  set('--glass-bg-light',     255, 255, 255, 0.10);
+  set('--glass-bg-dark',      0,   0,   0,   0.20);
+  set('--glass-bg-dark-hero', 0,   0,   0,   0.18);
+  set('--glass-card-light',   255, 255, 255, 0.12);
+  set('--glass-card-dark',    0,   0,   0,   0.15);
+  set('--glass-btn',          255, 255, 255, 0.20);
+  set('--glass-subtle',       255, 255, 255, 0.06);
+  set('--glass-bar',          255, 255, 255, 0.08);
+  set('--glass-content',      0,   0,   0,   0.12);
 }

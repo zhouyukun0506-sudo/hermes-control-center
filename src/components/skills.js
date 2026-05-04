@@ -1,121 +1,91 @@
-// ── Skills Management ──
-import { icons } from '../utils/icons.js';
-import { renderMarkdown } from '../utils/markdown.js';
+// ── Skills Manager Component ──
 import * as api from '../api.js';
 
-let selectedSkill = null;
-let editing = false;
-let editContent = '';
-
-export function renderSkills(container, { status }) {
-  if (!status?.webui_running) {
-    container.innerHTML = `<div class="page"><div class="empty-state">${icons.skills}<h3>Hermes 未运行</h3><p>请先启动服务</p></div></div>`;
-    return;
-  }
-
+export async function renderSkills(container) {
   container.innerHTML = `
-    <div class="page">
-      <div class="page-header">
-        <h1 class="page-title">技能管理</h1>
-        <p class="page-subtitle">查看和管理 Hermes Agent 的技能</p>
+    <div class="page page-padded">
+      <div style="max-width: 900px;">
+        <div class="page-header">
+          <h1 class="page-title">Skills</h1>
+          <p class="page-subtitle">Bash tools and capabilities available to the agent.</p>
+        </div>
+        <div id="skills-list" style="display: flex; flex-direction: column; gap: 6px;">
+          <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 14px;">Loading...</div>
+        </div>
       </div>
-      <div id="skills-content"></div>
-      <div id="skill-detail" style="display:none;"></div>
-    </div>`;
+    </div>
+  `;
 
-  loadSkills(container);
-}
+  // Detail overlay
+  const detailOverlay = document.createElement('div');
+  detailOverlay.style.cssText = 'display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.6); align-items:center; justify-content:center;';
+  detailOverlay.innerHTML = `
+    <div style="background: rgba(0,0,0,0.85); border: 0.5px solid var(--fill-quaternary); border-radius: 16px;
+                width: min(720px, 90vw); max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;">
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 24px;
+                  border-bottom: 1px solid var(--card-border);">
+        <h2 id="skill-detail-title" style="font-size: 18px; font-weight: 700;"></h2>
+        <button id="skill-detail-close" style="background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer;">✕</button>
+      </div>
+      <div id="skill-detail-body" style="flex: 1; overflow-y: auto; padding: 24px; font-family: var(--font-mono); font-size: 12px; line-height: 1.6; white-space: pre-wrap;"></div>
+    </div>
+  `;
+  document.body.appendChild(detailOverlay);
+  detailOverlay.querySelector('#skill-detail-close').addEventListener('click', () => detailOverlay.style.display = 'none');
+  detailOverlay.addEventListener('click', (e) => { if (e.target === detailOverlay) detailOverlay.style.display = 'none'; });
 
-async function loadSkills(container) {
-  const area = container.querySelector('#skills-content');
+  const listEl = container.querySelector('#skills-list');
+
   try {
     const data = await api.skills.list();
-    const skills = data.skills || [];
+    const skills = data.skills || data || [];
+    const list = Array.isArray(skills) ? skills : [];
 
-    if (skills.length === 0) {
-      area.innerHTML = '<div class="empty-state"><h3>暂无技能</h3><p>技能会在 Agent 使用过程中自动创建</p></div>';
+    if (list.length === 0) {
+      listEl.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 14px;">No skills available.</div>';
       return;
     }
 
-    area.innerHTML = `<div class="grid-3">${skills.map((s) => `
-      <div class="skill-card" data-skill="${s.name || s}">
-        <div class="skill-name">${icons.skills} ${s.name || s}</div>
-        <div class="skill-desc">${s.description || s.summary || '无描述'}</div>
-        ${s.file_count ? `<div style="font-size:11px; color:var(--text-muted); margin-top:8px;">${s.file_count} 个文件</div>` : ''}
-      </div>
-    `).join('')}</div>`;
+    listEl.innerHTML = list.map(skill => {
+      const name = typeof skill === 'string' ? skill : skill.name || '';
+      const desc = skill.description || '';
+      return '\
+        <div class="card skill-card" data-name="' + esc(name) + '" \
+             style="display: flex; align-items: center; gap: 14px; padding: 14px 20px; cursor: pointer; transition: all .15s;">\
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" \
+            stroke-linecap="round" stroke-linejoin="round" style="opacity: .4; flex-shrink: 0;">\
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>\
+          <span style="flex: 1; font-size: 14px; font-weight: 600;">' + esc(name) + '</span>\
+          ' + (desc ? '<span style="font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 300px;">' + esc(desc) + '</span>' : '') + '\
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" \
+            stroke-linecap="round" stroke-linejoin="round" style="opacity: .3; flex-shrink: 0;"><path d="m9 18 6-6-6-6"/></svg>\
+        </div>';
+    }).join('');
 
-    area.querySelectorAll('.skill-card').forEach((el) => {
-      el.addEventListener('click', () => viewSkill(el.dataset.skill, container));
-    });
-  } catch (e) {
-    area.innerHTML = `<div style="color:var(--accent-red);">加载失败: ${e.message}</div>`;
-  }
-}
-
-async function viewSkill(name, container) {
-  const detail = container.querySelector('#skill-detail');
-  const list = container.querySelector('#skills-content');
-  list.style.display = 'none';
-  detail.style.display = '';
-
-  try {
-    const data = await api.skills.view(name);
-    selectedSkill = { name, ...data };
-    editing = false;
-    editContent = data.content || '';
-
-    detail.innerHTML = `
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">${icons.skills} ${name}</div>
-          <div style="display:flex; gap:8px;">
-            <button class="btn" id="skill-back">${icons.arrowLeft} 返回</button>
-            <button class="btn btn-primary" id="skill-edit">${icons.edit} 编辑</button>
-            <button class="btn btn-danger" id="skill-delete">${icons.trash} 删除</button>
-          </div>
-        </div>
-        <div id="skill-body">
-          <div style="font-family:var(--font-mono); font-size:13px; line-height:1.6; white-space:pre-wrap; background:rgba(0,0,0,0.2); padding:16px; border-radius:var(--radius-sm); max-height:500px; overflow:auto;">${escapeHtml(data.content || '(空)')}</div>
-        </div>
-      </div>`;
-
-    detail.querySelector('#skill-back')?.addEventListener('click', () => {
-      detail.style.display = 'none';
-      list.style.display = '';
-      selectedSkill = null;
-    });
-
-    detail.querySelector('#skill-edit')?.addEventListener('click', () => {
-      const body = detail.querySelector('#skill-body');
-      body.innerHTML = `
-        <textarea class="textarea" id="skill-editor" style="min-height:300px; font-family:var(--font-mono); font-size:13px;">${escapeHtml(editContent)}</textarea>
-        <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
-          <button class="btn btn-success" id="skill-save">${icons.save} 保存</button>
-        </div>`;
-
-      body.querySelector('#skill-save')?.addEventListener('click', async () => {
-        const content = body.querySelector('#skill-editor').value;
+    listEl.querySelectorAll('.skill-card').forEach(card => {
+      card.addEventListener('click', async () => {
+        const name = card.dataset.name;
+        detailOverlay.querySelector('#skill-detail-title').textContent = name;
+        detailOverlay.querySelector('#skill-detail-body').textContent = 'Loading...';
+        detailOverlay.style.display = 'flex';
         try {
-          await api.skills.save(name, content, {});
-          viewSkill(name, container);
-        } catch (e) { alert('保存失败: ' + e.message); }
+          const data = await api.skills.view(name);
+          const content = data.content || data.data || '';
+          detailOverlay.querySelector('#skill-detail-body').textContent = content;
+        } catch {
+          detailOverlay.querySelector('#skill-detail-body').textContent = 'Failed to load skill content.';
+        }
       });
     });
 
-    detail.querySelector('#skill-delete')?.addEventListener('click', async () => {
-      if (confirm(`确认删除技能 "${name}"？`)) {
-        try {
-          await api.skills.delete(name);
-          detail.style.display = 'none';
-          list.style.display = '';
-          loadSkills(container);
-        } catch (e) { alert('删除失败: ' + e.message); }
-      }
-    });
-  } catch (e) {
-    detail.innerHTML = `<div style="color:var(--accent-red);">加载失败: ${e.message}</div>`;
+    const style = document.createElement('style');
+    style.textContent = '.skill-card:hover { border-color: rgba(255,255,255,.15); background: rgba(255,255,255,.04); }';
+    document.head.appendChild(style);
+  } catch (err) {
+    listEl.innerHTML = '<div style="padding: 40px; text-align: center; color: #ff453a; font-size: 14px;">Failed to load skills.<br>WebUI may be offline.</div>';
   }
 }
 
-function escapeHtml(str) { return (str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function esc(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}

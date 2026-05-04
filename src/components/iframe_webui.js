@@ -1,22 +1,24 @@
-// ── Hermes WebUI Iframe Component ──
+// ── Hermes WebUI Iframe Component (Full-screen App View) ──
 
 export function renderIframeWebUI(container, sessionId = null) {
-  const url = sessionId 
-    ? `http://127.0.0.1:9119/?session_id=${sessionId}`
-    : `http://127.0.0.1:9119/`;
+  const url = sessionId
+    ? `http://localhost:8787/?session_id=${sessionId}`
+    : `http://localhost:8787/`;
 
   container.innerHTML = `
-    <div class="page" style="padding: 0; display: flex; flex-direction: column; height: 100%;">
-      <div style="background: var(--bg-secondary); padding: 8px 16px; border-bottom: 2px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
-        <div style="font-family: var(--font-header); font-size: 8px; color: var(--accent);">NATIVE_WEBUI_BRIDGE</div>
-        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">${url}</div>
+    <div style="width:100%; height:100%; display:flex; flex-direction:column; background:#000;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding:4px 12px; flex-shrink:0; background:rgba(0,0,0,0.4); border-bottom:0.5px solid rgba(255,255,255,0.06);">
+        <span style="font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); opacity:0.5;">Hermes Core</span>
+        <span style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono); opacity:0.4;">${url}</span>
       </div>
-      <webview 
-        id="hermes-webui-view"
-        src="${url}" 
-        partition="persist:hermes"
-        style="flex: 1; width: 100%; height: 100%;"
+      <webview
+        src="${escUrl(url)}"
+        style="flex:1; width:100%; height:100%; border:none;"
       ></webview>
     </div>
   `;
+}
+
+function escUrl(s) {
+  return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }

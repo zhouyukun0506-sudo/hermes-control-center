@@ -133,7 +133,7 @@ async function browseDir(dirPath, container) {
       });
     });
   } catch (e) {
-    area.innerHTML = `<div style="padding:12px; color:var(--accent-red);">加载失败: ${e.message}</div>`;
+    area.innerHTML = `<div style="padding:12px; color:var(--error-color);">加载失败: ${e.message}</div>`;
   }
 }
 
@@ -146,9 +146,9 @@ async function viewFile(filePath, container) {
   try {
     const data = await api.files.read(filePath, currentWorkspace);
     const content = data.content || '';
-    area.innerHTML = `<pre style="background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:var(--radius-sm); padding:16px; font-family:var(--font-mono); font-size:12.5px; line-height:1.5; overflow:auto; max-height:600px; white-space:pre-wrap;">${escapeHtml(content)}</pre>`;
+    area.innerHTML = `<pre style="background:var(--fill-quinary); border:0.5px solid var(--fill-quaternary); border-radius:8px; padding:16px; font-family:var(--font-mono); font-size:12.5px; line-height:1.5; overflow:auto; max-height:600px; white-space:pre-wrap;">${escapeHtml(content)}</pre>`;
   } catch (e) {
-    area.innerHTML = `<div style="padding:12px; color:var(--accent-red);">无法读取: ${e.message}</div>`;
+    area.innerHTML = `<div style="padding:12px; color:var(--error-color);">无法读取: ${e.message}</div>`;
   }
 }
 
