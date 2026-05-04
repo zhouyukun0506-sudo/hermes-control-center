@@ -20,7 +20,7 @@ function createWindow() {
     height: 800,
     transparent: true,
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 16, y: 20 },
+    trafficLightPosition: { x: 18, y: 18 },
     backgroundColor: '#00000000',
     hasShadow: true,
     roundedCorners: true,
