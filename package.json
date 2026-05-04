@@ -1,6 +1,6 @@
 {
   "name": "workbench",
-  "description": "Professional productivity workspace with macOS 26 Liquid Glass design.",
+  "description": "Professional productivity workspace with Hermes Agent. macOS 26 Liquid Glass design.",
   "version": "1.2.0",
   "private": true,
   "type": "module",

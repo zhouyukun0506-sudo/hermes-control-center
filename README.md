@@ -1,8 +1,8 @@
-# Hermes Control Center
+# Workbench with Hermes Agent
 
-A premium control interface for the Hermes AI Agent system, featuring a Liquid Glass design system with real-time monitoring and full-suite agent management.
+A premium productivity workspace powered by Hermes Agent, featuring macOS 26 Liquid Glass design with real-time monitoring and full-suite agent management.
 
-![Version](https://img.shields.io/badge/version-1.1.0-8B5CF6)
+![Version](https://img.shields.io/badge/version-1.2.0-0087FF)
 ![Electron](https://img.shields.io/badge/Electron-41-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
