@@ -18,6 +18,17 @@
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <script>
+    // Expose window controls to renderer (Electron only)
+    if (window.process && window.process.type === 'renderer') {
+      const { ipcRenderer } = require('electron');
+      window.electronAPI = {
+        close: () => ipcRenderer.send('win-close'),
+        minimize: () => ipcRenderer.send('win-minimize'),
+        maximize: () => ipcRenderer.send('win-maximize'),
+      };
+    }
+  </script>
   <div id="app"></div>
   <script type="module" src="/src/main.js"></script>
 </body>

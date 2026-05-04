@@ -179,6 +179,12 @@ export function renderNav(container, { activePage, onNavigate, status }) {
   container.innerHTML = `
     <div class="sidebar-edge"></div>
 
+    <div class="traffic-lights">
+      <button class="tl-btn tl-close" id="tl-close" title="Close"></button>
+      <button class="tl-btn tl-minimize" id="tl-minimize" title="Minimize"></button>
+      <button class="tl-btn tl-maximize" id="tl-maximize" title="Maximize"></button>
+    </div>
+
     <span class="logo-text">
       <span style="display:inline-flex;align-items:center;gap:8px;">
         <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
@@ -220,6 +226,14 @@ export function renderNav(container, { activePage, onNavigate, status }) {
       </button>
     </div>
   `;
+
+  // Traffic light buttons
+  const tlClose = container.querySelector('#tl-close');
+  const tlMin = container.querySelector('#tl-minimize');
+  const tlMax = container.querySelector('#tl-maximize');
+  if (tlClose) tlClose.addEventListener('click', (e) => { e.stopPropagation(); window.electronAPI?.close(); });
+  if (tlMin) tlMin.addEventListener('click', (e) => { e.stopPropagation(); window.electronAPI?.minimize(); });
+  if (tlMax) tlMax.addEventListener('click', (e) => { e.stopPropagation(); window.electronAPI?.maximize(); });
 
   // Nav click events
   container.querySelectorAll('.nav-item').forEach((el) => {

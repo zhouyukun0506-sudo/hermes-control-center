@@ -256,6 +256,28 @@ body.font-misans { --font-main: 'MiSans', 'Inter', sans-serif; }
   border-radius: 12px;
 }
 
+/* ── Custom Traffic Lights ── */
+.traffic-lights {
+  display: flex; gap: 8px; padding: 0 0 16px 0;
+  -webkit-app-region: no-drag;
+}
+.tl-btn {
+  width: 12px; height: 12px; border-radius: 50%; border: none;
+  cursor: pointer; transition: all 0.15s; position: relative;
+  display: flex; align-items: center; justify-content: center;
+}
+.tl-btn svg {
+  width: 8px; height: 8px; opacity: 0; transition: opacity 0.15s;
+  stroke: rgba(0,0,0,0.6); stroke-width: 2; stroke-linecap: round;
+}
+.traffic-lights:hover .tl-btn svg { opacity: 1; }
+.tl-close { background: #ff5f57; }
+.tl-close:hover { background: #ff4037; }
+.tl-minimize { background: #febc2e; }
+.tl-minimize:hover { background: #f5a623; }
+.tl-maximize { background: #28c840; }
+.tl-maximize:hover { background: #1aab29; }
+
 /* ── Sidebar (floating glass panel / macOS 26 Liquid Glass) ── */
 .sidebar {
   width: var(--sidebar-w); height: calc(100% - 28px);

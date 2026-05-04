@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, session } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, session, ipcMain } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 
@@ -20,7 +20,7 @@ function createWindow() {
     height: 800,
     transparent: true,
     titleBarStyle: 'hidden',
-    trafficLightPosition: { x: 18, y: 18 },
+    trafficLightPosition: { x: -100, y: -100 },
     backgroundColor: '#00000000',
     hasShadow: true,
     roundedCorners: true,
@@ -116,6 +116,15 @@ function createTray() {
     }
   });
 }
+
+// ── Window Controls IPC ──
+ipcMain.on('win-close', () => { if (mainWindow) mainWindow.close(); });
+ipcMain.on('win-minimize', () => { if (mainWindow) mainWindow.minimize(); });
+ipcMain.on('win-maximize', () => {
+  if (mainWindow) {
+    mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
+  }
+});
 
 // Bypass further security restrictions
 app.commandLine.appendSwitch('disable-site-isolation-trials');
