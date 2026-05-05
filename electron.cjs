@@ -519,6 +519,22 @@ function createWindow() {
     },
   });
 
+  // Open external links in system browser instead of new Electron windows
+  const { shell } = require('electron');
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url && (url.startsWith('http://') || url.startsWith('https://'))) {
+      shell.openExternal(url);
+    }
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const parsed = new URL(url);
+    if (parsed.hostname !== '127.0.0.1' && parsed.hostname !== 'localhost') {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
+
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     const responseHeaders = { ...details.responseHeaders };
     for (const key of Object.keys(responseHeaders)) {

@@ -76,6 +76,19 @@ export function createBrowserFrame(container, { startUrl, partition = 'persist:h
     urlInput.value = e.url;
   });
 
+  // Open new-window requests in system browser (e.g. payment popups)
+  webview.addEventListener('new-window', (e) => {
+    e.preventDefault();
+    if (e.url && (e.url.startsWith('http://') || e.url.startsWith('https://'))) {
+      try {
+        const { shell } = require('electron');
+        shell.openExternal(e.url);
+      } catch {
+        window.open(e.url, '_blank');
+      }
+    }
+  });
+
   container.querySelectorAll('.browser-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const action = btn.dataset.action;
