@@ -1,17 +1,44 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, session, ipcMain } = require('electron');
 const path = require('path');
+const http = require('http');
+const fs = require('fs');
 const { spawn } = require('child_process');
 
 let mainWindow;
 let backendProcess;
+let localServer;
 let tray = null;
 let isQuitting = false;
+const LOCAL_PORT = 3456;
+
+// MIME types for static file serving
+const MIME = {
+  '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css',
+  '.json': 'application/json', '.png': 'image/png', '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
+  '.woff': 'font/woff', '.ttf': 'font/ttf',
+};
+
+function startLocalServer() {
+  const distDir = path.join(__dirname, 'dist');
+  localServer = http.createServer((req, res) => {
+    let filePath = path.join(distDir, req.url === '/' ? 'index.html' : req.url.split('?')[0]);
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(distDir, 'index.html');
+    }
+    const ext = path.extname(filePath);
+    res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+    fs.createReadStream(filePath).pipe(res);
+  });
+  localServer.listen(LOCAL_PORT, '127.0.0.1');
+}
 
 function startBackend() {
   const backendPath = path.join(__dirname, 'server', 'index.js');
-  backendProcess = spawn('node', [backendPath], {
-    stdio: 'inherit',
-  });
+  try {
+    backendProcess = spawn('node', [backendPath], { stdio: 'inherit' });
+    backendProcess.on('error', () => {}); // Silently ignore if node not found
+  } catch (e) {}
 }
 
 function createWindow() {
@@ -152,6 +179,7 @@ ipcMain.on('win-fullscreen', () => {
 app.commandLine.appendSwitch('disable-site-isolation-trials');
 
 app.whenReady().then(() => {
+  startLocalServer();
   startBackend();
   createWindow();
   createTray();
@@ -178,7 +206,6 @@ app.on('before-quit', () => {
 });
 
 app.on('quit', () => {
-  if (backendProcess) {
-    backendProcess.kill();
-  }
+  if (localServer) localServer.close();
+  if (backendProcess) backendProcess.kill();
 });
