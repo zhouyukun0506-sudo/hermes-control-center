@@ -130,8 +130,16 @@ function getAllKnownItems() {
 }
 
 // Build sections from config, falling back to defaults
-function buildSections() {
+function buildSections(status) {
   const allItems = getAllKnownItems();
+
+  // Add OpenClaw item dynamically if running
+  if (status?.openclaw_running && status?.openclaw_url) {
+    allItems['openclaw_webui'] = { id: 'openclaw_webui', label: 'OpenClaw', icon: icons.shield };
+  } else {
+    delete allItems['openclaw_webui'];
+  }
+
   const groupConfig = getGroupConfig();
   const sectionConfig = getSectionConfig();
 
@@ -208,7 +216,7 @@ function showContextMenu(x, y, pageId, sections) {
   dismissCtxMenu();
 
   const pageLabels = {
-    dashboard: 'Control Center', terminal: 'Command Line', original_webui: 'Core UI',
+    dashboard: 'Control Center', terminal: 'Command Line', original_webui: 'Core UI', openclaw_webui: 'OpenClaw',
     monitor: 'Activity Monitor', models: 'Model Explorer', sessions: 'Session Manager',
     logs: 'Log Viewer', theme: 'Theme Customizer', settings: 'Settings',
     calendar: 'Calendar', skills: 'Skills', memory: 'Memory',
@@ -411,7 +419,7 @@ export function renderNav(container, { activePage, onNavigate, status }) {
   // Expose renderNav globally for context menu re-render
   window.__renderNav = () => renderNav(container, { activePage, onNavigate, status });
 
-  const sections = buildSections();
+  const sections = buildSections(status);
 
   // Apply saved drag order within each section
   const savedOrder = getNavOrder();

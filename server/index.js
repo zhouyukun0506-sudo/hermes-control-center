@@ -78,6 +78,28 @@ app.use((req, res, next) => {
   next();
 });
 
+// ── OpenClaw WebUI Detection ──
+const OPENCLAW_PORTS = [3000, 5173, 5174, 8080, 8888, 9000];
+
+function checkPort(port) {
+  return new Promise(r => {
+    const req = http.get(`http://127.0.0.1:${port}/`, { timeout: 1500 }, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => r({ running: true, port }));
+    });
+    req.on('error', () => r({ running: false, port }));
+    req.on('timeout', () => { req.destroy(); r({ running: false, port }); });
+  });
+}
+
+async function detectOpenClaw() {
+  const results = await Promise.all(OPENCLAW_PORTS.map(checkPort));
+  const found = results.find(r => r.running);
+  return found
+    ? { running: true, port: found.port, url: `http://127.0.0.1:${found.port}` }
+    : { running: false, port: null, url: null };
+}
+
 // ── Status Checks ──
 function checkHealth() {
   return new Promise(r => {
@@ -100,8 +122,13 @@ async function getStats() {
 }
 
 app.get('/ctrl/status', async (req, res) => {
-  const [h, g, s] = await Promise.all([checkHealth(), Promise.resolve(checkGateway()), getStats()]);
-  res.json({ gateway_running: g, webui_running: h.online, webui_status: h.online ? h : null, stats: s, timestamp: Date.now() });
+  const [h, g, s, oc] = await Promise.all([checkHealth(), Promise.resolve(checkGateway()), getStats(), detectOpenClaw()]);
+  res.json({ gateway_running: g, webui_running: h.online, webui_status: h.online ? h : null, stats: s, openclaw_running: oc.running, openclaw_url: oc.url, timestamp: Date.now() });
+});
+
+app.get('/ctrl/openclaw/status', async (req, res) => {
+  const oc = await detectOpenClaw();
+  res.json(oc);
 });
 
 app.get('/ctrl/logs', (req, res) => {

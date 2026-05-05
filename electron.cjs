@@ -95,6 +95,28 @@ function getStats() {
   } catch { return { cpu: '0.0', mem: '0.0' }; }
 }
 
+// ── OpenClaw WebUI Detection ──
+const OPENCLAW_PORTS = [3000, 5173, 5174, 8080, 8888, 9000];
+
+function checkPort(port) {
+  return new Promise(r => {
+    const req = http.get(`http://127.0.0.1:${port}/`, { timeout: 1500 }, res => {
+      let d = ''; res.on('data', c => d += c);
+      res.on('end', () => r({ running: true, port }));
+    });
+    req.on('error', () => r({ running: false, port }));
+    req.on('timeout', () => { req.destroy(); r({ running: false, port }); });
+  });
+}
+
+async function detectOpenClaw() {
+  const results = await Promise.all(OPENCLAW_PORTS.map(checkPort));
+  const found = results.find(r => r.running);
+  return found
+    ? { running: true, port: found.port, url: `http://127.0.0.1:${found.port}` }
+    : { running: false, port: null, url: null };
+}
+
 // ── Calendar ──
 const CALENDAR_FILE = path.join(HOME, '.hermes', 'calendar.json');
 function loadCalendar() {
@@ -136,9 +158,16 @@ const server = http.createServer(async (req, res) => {
   // ── API Routes ──
 
   if (pathname === '/ctrl/status') {
-    const [h, g, s] = await Promise.all([checkHealth(), Promise.resolve(checkGateway()), Promise.resolve(getStats())]);
+    const [h, g, s, oc] = await Promise.all([checkHealth(), Promise.resolve(checkGateway()), Promise.resolve(getStats()), detectOpenClaw()]);
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ gateway_running: g, webui_running: h.online, webui_status: h.online ? h : null, stats: s, timestamp: Date.now() }));
+    res.end(JSON.stringify({ gateway_running: g, webui_running: h.online, webui_status: h.online ? h : null, stats: s, openclaw_running: oc.running, openclaw_url: oc.url, timestamp: Date.now() }));
+    return;
+  }
+
+  if (pathname === '/ctrl/openclaw/status') {
+    const oc = await detectOpenClaw();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(oc));
     return;
   }
 

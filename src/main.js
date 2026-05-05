@@ -29,7 +29,7 @@ import { initGlobalChat } from './components/global_chat.js';
 // ── App State ──
 let currentPage = 'dashboard';
 let currentSessionId = null;
-let status = { gateway_running: false, webui_running: false };
+let status = { gateway_running: false, webui_running: false, openclaw_running: false, openclaw_url: null };
 let intervalId = null;
 
 // Navigation history for back/forward
@@ -329,6 +329,7 @@ window.__renderPageToContainer = (pageId, container) => {
     case 'calendar': renderCalendar(container, ctx); break;
     case 'theme': renderThemeCustomizer(container); break;
     case 'original_webui': renderIframeWebUI(container, currentSessionId); break;
+    case 'openclaw_webui': renderIframeWebUI(container, null, status.openclaw_url); break;
     case 'browser_pages': renderBrowserManager(container); break;
     case 'comparison_search': renderComparisonSearch(container); break;
     case 'flip_clock': renderFlipClock(container); break;
@@ -370,6 +371,7 @@ function renderMain() {
     case 'calendar': renderCalendar(pageEl, ctx); break;
     case 'theme': renderThemeCustomizer(pageEl); break;
     case 'original_webui': renderIframeWebUI(pageEl, currentSessionId); break;
+    case 'openclaw_webui': renderIframeWebUI(pageEl, null, status.openclaw_url); break;
     case 'browser_pages': renderBrowserManager(pageEl); break;
     case 'comparison_search': renderComparisonSearch(pageEl); break;
     case 'flip_clock': renderFlipClock(pageEl); break;

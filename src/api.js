@@ -55,6 +55,7 @@ export const ctrl = {
   startWebUI: (onData) => streamPost('/ctrl/start-webui', onData),
   stop: (onData) => streamPost('/ctrl/stop', onData),
   exec: (command) => postJSON('/ctrl/exec', { command }),
+  openclaw: () => fetchJSON('/ctrl/openclaw/status'),
 };
 
 export const sessions = {

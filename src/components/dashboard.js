@@ -16,6 +16,8 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
   const online = status?.webui_running;
   const gwOnline = status?.gateway_running;
   const ws = status?.webui_status;
+  const ocOnline = status?.openclaw_running;
+  const ocUrl = status?.openclaw_url;
 
   container.innerHTML = `
     <div class="page">
@@ -79,6 +81,13 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
           <div class="card" style="padding: 18px;">
             <div style="color: var(--text-muted); font-size: 10px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">Uptime</div>
             <div style="font-size: 18px; font-weight: 600;">${formatUptime(ws?.uptime_seconds)}</div>
+          </div>
+          <div class="card" style="padding: 18px; cursor: ${ocOnline ? 'pointer' : 'default'};" ${ocOnline ? `onclick="window.__navigateTo && window.__navigateTo('openclaw_webui')"` : ''}>
+            <div style="color: var(--text-muted); font-size: 10px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.8px;">OpenClaw</div>
+            <div style="font-size: 18px; font-weight: 600; color: ${ocOnline ? 'var(--online-color)' : 'var(--text-muted)'}; display: flex; align-items: center; gap: 8px;">
+              <div style="width: 6px; height: 6px; border-radius: 50%; background: currentColor;"></div>
+              ${ocOnline ? `Active :${ocUrl?.replace('http://127.0.0.1', '') || ''}` : 'Not Found'}
+            </div>
           </div>
         </div>
 
