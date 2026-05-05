@@ -270,7 +270,7 @@ export function renderSettings(container) {
   const DEPLOY_CMDS = {
     openclaw: {
       mac: 'npm install -g openclaw@latest',
-      win: 'wsl -- npm install -g openclaw@latest',
+      win: 'powershell -c "irm https://openclaw.ai/install.ps1 | iex"',
       linux: 'npm install -g openclaw@latest',
     },
     hermes: 'curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash',
