@@ -230,10 +230,10 @@ export function renderSettings(container) {
 
           <div style="padding: 16px 20px; display: flex; gap: 10px; flex-wrap: wrap;">
             <button id="settings-export" class="btn" style="flex:1; background:rgba(255,255,255,0.08);">
-              ↓ Export Settings
+              ↓ Export All Settings
             </button>
             <button id="settings-import" class="btn" style="flex:1; background:rgba(255,255,255,0.08);">
-              ↑ Import Settings
+              ↑ Import Settings File
             </button>
             <input type="file" id="settings-import-file" accept=".json" style="display:none;">
           </div>
@@ -249,7 +249,7 @@ export function renderSettings(container) {
           <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border-radius:8px;padding:8px 16px;">
             <span style="width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block;"></span>
             <span style="color:var(--text-muted);font-size:12px;font-weight:500;">Workbench</span>
-            <span style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono);opacity:0.5;">v1.0.6</span>
+            <span style="color:var(--text-muted);font-size:11px;font-family:var(--font-mono);opacity:0.5;">v1.4.3</span>
           </div>
           <div style="margin-top: 12px; font-size: 10px; color: var(--text-muted); opacity: 0.50; letter-spacing: 0.5px;">
             Ethan_chou0956
@@ -406,26 +406,37 @@ export function renderSettings(container) {
     });
   });
 
-  // Export settings
+  // ── Toast helper ──
+  function showToast(msg, type = 'success') {
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:24px;right:24px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;color:#fff;backdrop-filter:blur(12px);animation:fadeIn .2s ease;pointer-events:none;`
+      + (type === 'error' ? 'background:rgba(255,69,58,0.85);' : 'background:rgba(50,215,75,0.85);');
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 2500);
+  }
+
+  // ── Export: capture ALL hermes_ keys + version metadata ──
   container.querySelector('#settings-export').addEventListener('click', () => {
-    const keys = ['hermes_theme', 'hermes_font', 'hermes_accent_custom', 'hermes_accent', 'hermes_bg',
-      'hermes_sidebar_collapsed', 'hermes_browser_pages', 'hermes_nav_order',
-      'hermes_show_status_footer', 'hermes_compact_mode',
-      ...Object.values(SETTINGS).map(s => s.key)];
-    const data = {};
-    keys.forEach(k => {
-      const v = localStorage.getItem(k);
-      if (v !== null) data[k] = v;
-    });
+    const data = { __meta: { version: '1.4', exportedAt: new Date().toISOString(), app: 'hermes-workbench' } };
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('hermes_')) {
+        data[k] = localStorage.getItem(k);
+      }
+    }
+    const count = Object.keys(data).length - 1; // exclude __meta
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `hermes-settings-${new Date().toISOString().slice(0,10)}.json`;
+    a.href = url;
+    a.download = `hermes-settings-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    showToast(`Exported ${count} settings`);
   });
 
-  // Import settings
+  // ── Import: validate, preview, merge/replace ──
   const fileInput = container.querySelector('#settings-import-file');
   container.querySelector('#settings-import').addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', () => {
@@ -435,13 +446,61 @@ export function renderSettings(container) {
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result);
-        Object.entries(data).forEach(([k, v]) => localStorage.setItem(k, v));
-        location.reload();
+        // Validate
+        const keys = Object.keys(data).filter(k => !k.startsWith('__'));
+        if (keys.length === 0) { showToast('No settings found in file', 'error'); return; }
+        // Show confirmation overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease;';
+        const meta = data.__meta || {};
+        const preview = keys.slice(0, 12).map(k => `<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);padding:2px 0;">${k.replace('hermes_', '')}</div>`).join('');
+        const more = keys.length > 12 ? `<div style="font-size:11px;color:var(--text-tertiary);padding:2px 0;">...and ${keys.length - 12} more</div>` : '';
+        overlay.innerHTML = `
+          <div class="card" style="padding:24px 28px;max-width:420px;width:90%;text-align:left;">
+            <div style="font-size:16px;font-weight:700;margin-bottom:6px;">Import Settings</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">
+              ${meta.exportedAt ? `Exported ${new Date(meta.exportedAt).toLocaleDateString()}` : 'Unknown date'} · ${keys.length} settings
+            </div>
+            <div style="background:var(--fill-quaternary);border-radius:8px;padding:10px 14px;margin-bottom:16px;max-height:180px;overflow-y:auto;">
+              ${preview}${more}
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button id="import-merge" class="btn" style="flex:1;background:rgba(50,215,75,0.2);color:#32d74b;font-weight:600;">Merge</button>
+              <button id="import-replace" class="btn" style="flex:1;background:rgba(255,69,58,0.2);color:#ff453a;font-weight:600;">Replace All</button>
+              <button id="import-cancel" class="btn" style="flex:1;background:rgba(255,255,255,0.08);">Cancel</button>
+            </div>
+          </div>`;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (ev) => {
+          if (ev.target === overlay) overlay.remove();
+        });
+        overlay.querySelector('#import-cancel').addEventListener('click', () => overlay.remove());
+        overlay.querySelector('#import-merge').addEventListener('click', () => {
+          keys.forEach(k => localStorage.setItem(k, data[k]));
+          overlay.remove();
+          showToast(`Merged ${keys.length} settings`);
+          setTimeout(() => location.reload(), 600);
+        });
+        overlay.querySelector('#import-replace').addEventListener('click', () => {
+          // Clear all hermes_ keys first
+          const toRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            if (k && k.startsWith('hermes_')) toRemove.push(k);
+          }
+          toRemove.forEach(k => localStorage.removeItem(k));
+          // Apply imported
+          keys.forEach(k => localStorage.setItem(k, data[k]));
+          overlay.remove();
+          showToast(`Replaced with ${keys.length} settings`);
+          setTimeout(() => location.reload(), 600);
+        });
       } catch (err) {
-        alert('Invalid settings file: ' + err.message);
+        showToast('Invalid settings file: ' + err.message, 'error');
       }
     };
     reader.readAsText(file);
+    fileInput.value = '';
   });
 
   // Reset button with confirmation
@@ -449,9 +508,13 @@ export function renderSettings(container) {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       if (resetBtn.dataset.confirm) {
-        // Second click — actually reset
-        const keys = Object.values(SETTINGS).map(s => s.key);
-        keys.forEach(k => localStorage.removeItem(k));
+        // Second click — actually reset ALL hermes_ keys
+        const toRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('hermes_')) toRemove.push(k);
+        }
+        toRemove.forEach(k => localStorage.removeItem(k));
         // Reset CSS vars
         document.documentElement.style.removeProperty('--glass-blur');
         ['--glass-bg-light','--glass-bg-dark','--glass-bg-dark-hero','--glass-card-light','--glass-card-dark','--glass-btn','--glass-subtle','--glass-bar','--glass-content'].forEach(k => document.documentElement.style.removeProperty(k));
