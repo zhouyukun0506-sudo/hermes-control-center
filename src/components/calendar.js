@@ -1,21 +1,14 @@
 // ── Calendar Component (Batch 1 + Batch 3) ──
 import * as api from '../api.js';
+import * as pomo from '../utils/pomodoro.js';
 
 let events = [];
 let currentYear = 0;
 let currentMonth = 0;
 let selectedDate = '';
 
-// Timer state
-let timerState = {
-  running: false,
-  mode: 'focus',
-  timeLeft: 25 * 60,
-  focusDuration: 25 * 60,
-  breakDuration: 5 * 60,
-  interval: null,
-};
 let timerContainer = null;
+let unsubPomo = null;
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -47,27 +40,18 @@ function formatDate(d) {
 }
 
 export async function renderCalendar(container, ctx = {}) {
-  // Clear old timer interval
-  if (timerState.interval) { clearInterval(timerState.interval); timerState.interval = null; }
-  timerState.running = false;
   timerContainer = container;
+
+  // Unsubscribe any previous listener
+  if (unsubPomo) { unsubPomo(); unsubPomo = null; }
 
   const tombstone = ctx.tombstone;
   if (tombstone) {
-    // Restore from tombstone — skip API call
     events = tombstone.events || [];
     currentYear = tombstone.currentYear;
     currentMonth = tombstone.currentMonth;
     selectedDate = tombstone.selectedDate || '';
-    timerState = {
-      running: false,
-      mode: tombstone.timerState?.mode || 'focus',
-      timeLeft: tombstone.timerState?.timeLeft ?? 25 * 60,
-      focusDuration: tombstone.timerState?.focusDuration ?? 25 * 60,
-      breakDuration: tombstone.timerState?.breakDuration ?? 5 * 60,
-      interval: null,
-    };
-    // Render from cached state
+
     container.innerHTML = layout();
     renderMonth(container);
     renderCountdown(container);
@@ -76,7 +60,6 @@ export async function renderCalendar(container, ctx = {}) {
     renderHeatmap(container);
     bindEvents(container);
   } else {
-    // Fresh full load
     const now = new Date();
     currentYear = now.getFullYear();
     currentMonth = now.getMonth();
@@ -91,18 +74,42 @@ export async function renderCalendar(container, ctx = {}) {
     bindEvents(container);
   }
 
+  // Subscribe to shared timer — update calendar UI on every tick
+  let prevMode = pomo.getState().mode;
+  unsubPomo = pomo.subscribe((s) => {
+    if (!timerContainer || !document.body.contains(timerContainer)) return;
+    updateTimerUI(timerContainer);
+    // When a focus session completes (mode switches work→break), record heatmap
+    if (prevMode === 'work' && s.mode === 'break') {
+      const focusMins = s.workDuration / 60;
+      const heatmap = loadHeatmap();
+      const todayStr = formatDate(new Date());
+      heatmap[todayStr] = (heatmap[todayStr] || 0) + focusMins;
+      saveHeatmap(heatmap);
+      updateTimerStats(timerContainer);
+      renderHeatmap(timerContainer);
+    }
+    prevMode = s.mode;
+  });
+
+  // Cleanup on navigate away
+  container.cleanup = function() {
+    if (unsubPomo) { unsubPomo(); unsubPomo = null; }
+  };
+
   // Attach tombstone serializer — called by main.js on navigate away
   container.tombstone = function() {
+    const s = pomo.getState();
     return {
       events,
       currentYear,
       currentMonth,
       selectedDate,
       timerState: {
-        mode: timerState.mode,
-        timeLeft: timerState.timeLeft,
-        focusDuration: timerState.focusDuration,
-        breakDuration: timerState.breakDuration,
+        mode: s.mode,
+        timeLeft: s.remaining,
+        focusDuration: s.workDuration,
+        breakDuration: s.breakDuration,
       },
     };
   };
@@ -390,84 +397,41 @@ function renderTimer(container) {
 }
 
 function updateTimerUI(container) {
+  const s = pomo.getState();
   const display = container.querySelector('#timer-display');
   const mode = container.querySelector('#timer-mode');
-  if (display) display.textContent = formatTime(timerState.timeLeft);
+  if (display) display.textContent = pomo.formatTime(s.remaining);
   if (mode) {
-    mode.textContent = timerState.mode === 'focus' ? 'Focus' : 'Break';
-    mode.style.color = timerState.mode === 'focus' ? 'var(--text-muted)' : '#2ecc71';
+    mode.textContent = s.mode === 'work' ? 'Focus' : 'Break';
+    mode.style.color = s.mode === 'work' ? 'var(--text-muted)' : '#2ecc71';
   }
-  // Update running state visual
+  const isRunning = pomo.isRunning();
   const startBtn = container.querySelector('#timer-start-btn');
   if (startBtn) {
-    startBtn.innerHTML = timerState.running
+    startBtn.innerHTML = isRunning
       ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>'
       : '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
-    startBtn.style.background = timerState.running ? 'rgba(255,255,255,0.08)' : 'rgba(46,204,113,0.15)';
-    startBtn.style.color = timerState.running ? 'var(--text-muted)' : '#2ecc71';
+    startBtn.style.background = isRunning ? 'rgba(255,255,255,0.08)' : 'rgba(46,204,113,0.15)';
+    startBtn.style.color = isRunning ? 'var(--text-muted)' : '#2ecc71';
   }
-  if (timerState.running) {
-    display?.style.setProperty('color', timerState.mode === 'focus' ? 'var(--text-main)' : '#2ecc71');
+  if (isRunning) {
+    display?.style.setProperty('color', s.mode === 'work' ? 'var(--text-main)' : '#2ecc71');
   } else {
     display?.style.setProperty('color', 'var(--text-muted)');
   }
 }
 
 function updateTimerStats(container) {
+  const s = pomo.getState();
   const heatmap = loadHeatmap();
   const todayStr = formatDate(new Date());
   const todayData = heatmap[todayStr] || 0;
   const totalMins = Math.floor(todayData);
-  const sessions = (todayData > 0 && todayData % 1 !== 0) ? Math.ceil(todayData / 100) : Math.floor(todayData / (timerState.focusDuration / 60)) || 0;
 
   const sessionsEl = container.querySelector('#timer-sessions');
   const totalEl = container.querySelector('#timer-total');
-  if (sessionsEl) sessionsEl.textContent = totalMins > 0 ? Math.max(1, Math.round(totalMins / (timerState.focusDuration / 60))) : 0;
+  if (sessionsEl) sessionsEl.textContent = totalMins > 0 ? Math.max(1, Math.round(totalMins / (s.workDuration / 60))) : 0;
   if (totalEl) totalEl.textContent = totalMins;
-}
-
-function tickTimer() {
-  if (!timerContainer || !document.body.contains(timerContainer)) {
-    clearInterval(timerState.interval);
-    timerState.interval = null;
-    timerState.running = false;
-    return;
-  }
-
-  if (timerState.timeLeft <= 0) {
-    // Session complete
-    const focusMins = timerState.focusDuration / 60;
-
-    if (timerState.mode === 'focus') {
-      // Record to heatmap
-      const heatmap = loadHeatmap();
-      const todayStr = formatDate(new Date());
-      heatmap[todayStr] = (heatmap[todayStr] || 0) + focusMins;
-      saveHeatmap(heatmap);
-
-      // Switch to break
-      timerState.mode = 'break';
-      timerState.timeLeft = timerState.breakDuration;
-    } else {
-      // Switch to focus
-      timerState.mode = 'focus';
-      timerState.timeLeft = timerState.focusDuration;
-    }
-
-    updateTimerUI(timerContainer);
-    updateTimerStats(timerContainer);
-    renderHeatmap(timerContainer);
-    return;
-  }
-
-  timerState.timeLeft--;
-  updateTimerUI(timerContainer);
-}
-
-function formatTime(seconds) {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
 }
 
 // ── Heatmap ──
@@ -648,50 +612,31 @@ function bindEvents(container) {
 
   // Timer start/pause
   container.querySelector('#timer-start-btn').addEventListener('click', () => {
-    if (timerState.interval) {
-      // Pause
-      clearInterval(timerState.interval);
-      timerState.interval = null;
-      timerState.running = false;
+    if (pomo.isRunning()) {
+      pomo.pause();
     } else {
-      // Start
-      timerState.running = true;
-      timerState.interval = setInterval(() => tickTimer(), 1000);
+      pomo.start();
     }
-    updateTimerUI(container);
   });
 
   // Timer reset
   container.querySelector('#timer-reset-btn').addEventListener('click', () => {
-    if (timerState.interval) {
-      clearInterval(timerState.interval);
-      timerState.interval = null;
-    }
-    timerState.running = false;
-    timerState.mode = 'focus';
-    timerState.timeLeft = timerState.focusDuration;
-    updateTimerUI(container);
-    const mode = container.querySelector('#timer-mode');
-    if (mode) mode.style.color = 'var(--text-muted)';
+    pomo.reset();
   });
 
   // Timer duration buttons
   container.querySelectorAll('.timer-dur-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (timerState.running) return; // Don't change during session
+      if (pomo.isRunning()) return;
       const mins = parseInt(btn.dataset.minutes);
-      timerState.focusDuration = mins * 60;
-      timerState.timeLeft = timerState.focusDuration;
+      pomo.setWorkDuration(mins);
 
-      // Update active state
       container.querySelectorAll('.timer-dur-btn').forEach(b => {
         const active = parseInt(b.dataset.minutes) === mins;
         b.style.background = active ? 'rgba(187,38,73,0.15)' : 'rgba(255,255,255,0.04)';
         b.style.color = active ? 'var(--accent)' : 'var(--text-muted)';
         b.style.fontWeight = active ? '600' : '500';
       });
-
-      updateTimerUI(container);
     });
     btn.addEventListener('mouseenter', () => {
       if (!btn.style.background.includes('187,38,73')) btn.style.background = 'rgba(255,255,255,0.08)';

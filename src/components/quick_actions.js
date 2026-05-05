@@ -1,71 +1,11 @@
 // ── Quick Actions System (Toolbar + Command Palette + Drawer) ──
 import { icons } from '../utils/icons.js';
 import * as api from '../api.js';
+import * as pomo from '../utils/pomodoro.js';
 
 let ctx = null;
 let cleanupFns = [];
-
-// ── Pomodoro Timer State ──
-const POMODORO = {
-  WORK: 25 * 60,
-  BREAK: 5 * 60,
-  state: 'idle', // idle | work | break | paused
-  remaining: 25 * 60,
-  interval: null,
-  el: null,
-  labelEl: null,
-};
-
-function formatTime(s) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
-}
-
-function pomodoroTick() {
-  if (POMODORO.remaining <= 0) {
-    // Switch between work and break
-    if (POMODORO.state === 'work') {
-      POMODORO.state = 'break';
-      POMODORO.remaining = POMODORO.BREAK;
-    } else {
-      POMODORO.state = 'work';
-      POMODORO.remaining = POMODORO.WORK;
-    }
-  }
-  POMODORO.remaining--;
-  if (POMODORO.remaining < 0) POMODORO.remaining = 0;
-  updatePomodoroUI();
-}
-
-function startPomodoro() {
-  if (POMODORO.state === 'idle') {
-    POMODORO.remaining = POMODORO.WORK;
-  }
-  POMODORO.state = 'work';
-  if (POMODORO.interval) return;
-  POMODORO.interval = setInterval(pomodoroTick, 1000);
-  updatePomodoroUI();
-}
-
-function pausePomodoro() {
-  if (POMODORO.interval) {
-    clearInterval(POMODORO.interval);
-    POMODORO.interval = null;
-  }
-  POMODORO.state = 'paused';
-  updatePomodoroUI();
-}
-
-function resetPomodoro() {
-  if (POMODORO.interval) {
-    clearInterval(POMODORO.interval);
-    POMODORO.interval = null;
-  }
-  POMODORO.state = 'idle';
-  POMODORO.remaining = POMODORO.WORK;
-  updatePomodoroUI();
-}
+let pomoBtn = null;
 
 function togglePomodoroPopover() {
   const pop = document.getElementById('qa-pomo-popover');
@@ -76,10 +16,8 @@ function togglePomodoroPopover() {
     pop.style.pointerEvents = 'none';
     pop.style.transform = 'translateY(-4px) scale(0.96)';
   } else {
-    // Position relative to the pomodoro button
-    const btn = POMODORO.el;
-    if (btn) {
-      const r = btn.getBoundingClientRect();
+    if (pomoBtn) {
+      const r = pomoBtn.getBoundingClientRect();
       pop.style.right = (window.innerWidth - r.right) + 'px';
       pop.style.top = (r.bottom + 6) + 'px';
     }
@@ -91,15 +29,14 @@ function togglePomodoroPopover() {
 }
 
 function updatePomodoroUI() {
-  const { state, remaining, el, labelEl } = POMODORO;
-  if (!el) return;
+  const s = pomo.getState();
+  if (!pomoBtn) return;
 
-  const time = formatTime(remaining);
-  const isActive = state === 'work' || state === 'break';
-  const isPaused = state === 'paused';
+  const time = pomo.formatTime(s.remaining);
+  const isActive = s.mode === 'work' || s.mode === 'break';
+  const isPaused = s.mode === 'paused';
 
-  // Update toolbar button display
-  el.innerHTML = `
+  pomoBtn.innerHTML = `
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <circle cx="12" cy="12" r="10"/>
       <polyline points="12 6 12 12 16 14"/>
@@ -107,13 +44,12 @@ function updatePomodoroUI() {
     ${isActive || isPaused ? `<span class="qa-pomo-time">${time}</span>` : ''}
   `;
 
-  // Update popover content
   const popBody = document.getElementById('qa-pomo-body');
   if (popBody) {
-    const progress = state === 'work'
-      ? ((POMODORO.WORK - remaining) / POMODORO.WORK) * 100
-      : state === 'break'
-        ? ((POMODORO.BREAK - remaining) / POMODORO.BREAK) * 100
+    const progress = s.mode === 'work'
+      ? ((s.workDuration - s.remaining) / s.workDuration) * 100
+      : s.mode === 'break'
+        ? ((s.breakDuration - s.remaining) / s.breakDuration) * 100
         : 0;
     const circumference = 2 * Math.PI * 42;
     const dashoffset = circumference - (progress / 100) * circumference;
@@ -124,7 +60,7 @@ function updatePomodoroUI() {
           <svg width="100" height="100" viewBox="0 0 100 100">
             <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="5"/>
             <circle cx="50" cy="50" r="42" fill="none"
-              stroke="${state === 'break' ? '#32d74b' : '#007AFF'}"
+              stroke="${s.mode === 'break' ? '#32d74b' : '#007AFF'}"
               stroke-width="5" stroke-linecap="round"
               stroke-dasharray="${circumference}"
               stroke-dashoffset="${dashoffset}"
@@ -136,13 +72,13 @@ function updatePomodoroUI() {
               ${time}
             </div>
             <div style="font-size:10px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">
-              ${state === 'work' ? 'Focus' : state === 'break' ? 'Break' : state === 'paused' ? 'Paused' : 'Ready'}
+              ${s.mode === 'work' ? 'Focus' : s.mode === 'break' ? 'Break' : s.mode === 'paused' ? 'Paused' : 'Ready'}
             </div>
           </div>
         </div>
         <div style="display:flex;gap:8px;">
-          ${state === 'idle' || state === 'paused'
-            ? `<button id="pomo-start" class="qa-pomo-btn" style="background:var(--accent);color:#fff;">${state === 'paused' ? 'Resume' : 'Start'}</button>`
+          ${s.mode === 'idle' || s.mode === 'paused'
+            ? `<button id="pomo-start" class="qa-pomo-btn" style="background:var(--accent);color:#fff;">${s.mode === 'paused' ? 'Resume' : 'Start'}</button>`
             : `<button id="pomo-pause" class="qa-pomo-btn" style="background:rgba(255,255,255,0.10);color:var(--text-main);">Pause</button>`
           }
           <button id="pomo-reset" class="qa-pomo-btn" style="background:rgba(255,255,255,0.06);color:var(--text-muted);">Reset</button>
@@ -158,27 +94,20 @@ function updatePomodoroUI() {
       </div>
     `;
 
-    // Attach event listeners
     const startBtn = document.getElementById('pomo-start');
     const pauseBtn = document.getElementById('pomo-pause');
     const resetBtn = document.getElementById('pomo-reset');
 
-    if (startBtn) startBtn.addEventListener('click', (e) => { e.stopPropagation(); startPomodoro(); });
-    if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); pausePomodoro(); });
-    if (resetBtn) resetBtn.addEventListener('click', (e) => { e.stopPropagation(); resetPomodoro(); });
+    if (startBtn) startBtn.addEventListener('click', (e) => { e.stopPropagation(); pomo.start(); });
+    if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); pomo.pause(); });
+    if (resetBtn) resetBtn.addEventListener('click', (e) => { e.stopPropagation(); pomo.reset(); });
 
     popBody.querySelectorAll('.qa-pomo-presets').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const mins = parseInt(btn.dataset.mins);
-        if (POMODORO.interval) {
-          clearInterval(POMODORO.interval);
-          POMODORO.interval = null;
-        }
-        POMODORO.state = 'idle';
-        POMODORO.remaining = mins * 60;
-        POMODORO.WORK = mins * 60;
-        updatePomodoroUI();
+        pomo.reset();
+        pomo.setWorkDuration(mins);
       });
     });
   }
@@ -254,6 +183,10 @@ export function initQuickActions(appCtx) {
   document.addEventListener('keydown', onKey);
   cleanupFns.push(() => document.removeEventListener('keydown', onKey));
 
+  // Subscribe to shared pomodoro timer — update toolbar UI on every tick
+  const unsub = pomo.subscribe(() => updatePomodoroUI());
+  cleanupFns.push(unsub);
+
   return () => cleanupFns.forEach(f => f());
 }
 
@@ -319,11 +252,10 @@ function createToolbar() {
   bar.appendChild(chip);
 
   // Pomodoro button
-  const pomoBtn = document.createElement('button');
+  pomoBtn = document.createElement('button');
   pomoBtn.className = 'qa-tb-btn qa-pomo-btn-toggle';
   pomoBtn.title = 'Pomodoro Timer';
   pomoBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-  POMODORO.el = pomoBtn;
   pomoBtn.addEventListener('click', (e) => {
     e.stopPropagation();
     togglePomodoroPopover();
@@ -337,9 +269,10 @@ function createToolbar() {
   let pomoTipTimer;
   pomoBtn.addEventListener('mouseenter', () => {
     pomoTipTimer = setTimeout(() => {
-      const stateLabel = { idle: 'Ready', work: 'Focusing', break: 'Break', paused: 'Paused' }[POMODORO.state] || 'Ready';
-      const time = formatTime(POMODORO.remaining);
-      const stateColor = POMODORO.state === 'work' ? '#007AFF' : POMODORO.state === 'break' ? '#32d74b' : 'var(--text-muted)';
+      const s = pomo.getState();
+      const stateLabel = { idle: 'Ready', work: 'Focusing', break: 'Break', paused: 'Paused' }[s.mode] || 'Ready';
+      const time = pomo.formatTime(s.remaining);
+      const stateColor = s.mode === 'work' ? '#007AFF' : s.mode === 'break' ? '#32d74b' : 'var(--text-muted)';
       pomoPreview.innerHTML = `
         <div class="hp-title">Pomodoro Timer</div>
         <div class="hp-desc" style="display:flex;align-items:center;gap:6px;">

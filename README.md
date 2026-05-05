@@ -2,9 +2,32 @@
 
 A premium productivity workspace powered by Hermes Agent, featuring macOS 26 Liquid Glass design with real-time monitoring and full-suite agent management.
 
-![Version](https://img.shields.io/badge/version-1.3.0-0087FF)
+![Version](https://img.shields.io/badge/version-1.4.0-0087FF)
 ![Electron](https://img.shields.io/badge/Electron-41-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
+
+---
+
+## Quick Install
+
+### macOS / Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/zhouyukun0506-sudo/hermes-control-center/main/install.sh | bash
+```
+
+### Windows (PowerShell)
+
+```powershell
+irm https://raw.githubusercontent.com/zhouyukun0506-sudo/hermes-control-center/main/install.ps1 | iex
+```
+
+After install:
+
+```bash
+cd ~/.hermes-control && npm run electron   # Desktop app
+cd ~/.hermes-control && npm run dev        # Browser (localhost:3456)
+```
 
 ---
 
@@ -29,23 +52,26 @@ Hermes Control Center is the desktop companion for the Hermes AI Agent. It provi
 - **Gemini Pro** — Chat agent interface
 
 ### Tools & Productivity
-- **Calendar** — Local JSON-backed event management
+- **Calendar** — Local JSON-backed event management with Pomodoro timer
 - **File Browser** — Native filesystem browsing with preview
 - **Workspaces** — Quick-access project directories
 - **Usage Insights** — Token usage and activity trends
 - **Model Explorer** — Browse available models and their capabilities
+- **Deploy Agents** — One-click install for OpenClaw & Hermes Agent
 
 ### Customization
-- **Theme Customizer** — 9 preset themes (Deep Dark, Neon Matrix, Vaporwave, Light Mode, plus 5 Pantone-inspired colorways)
+- **Theme Customizer** — 14 preset themes (Deep Dark, Neon Matrix, Vaporwave, Light Mode, 5 color themes, 5 Pantone-inspired colorways)
 - **Custom Colors** — Pick your own accent and background colors
-- **Typography** — Inter, JetBrains Mono, SF Pro, and more
+- **Typography** — Inter, MiSans, Playfair Display, JetBrains Mono, SF Pro
+- **8 Design Styles** — Liquid Glass, Neumorphism, Flat, Material, Minimalism, Claymorphism, Bento, Editorial
 - **Liquid Glass Design** — 7-layer shadow system, blur-backed glass panels, highlight borders
 
 ### Navigation & Shortcuts
 - **Command Palette** — Press `⌘K` to search and run any action
 - **Quick Actions Toolbar** — Pinned shortcuts at the top
-- **Keyboard Navigation** — `⌘1-9` for direct page switching, `⌘[/⌘]` for back/forward
-- **Collapsible Sidebar** — Icon-only mode for more screen space
+- **Keyboard Navigation** — `⌘1-9` for direct page switching, `⌘[/⌘]` for back/forward, `↑/↓` to cycle pages
+- **Collapsible Sidebar** — Icon-only mode with collapsible section groups
+- **Custom Groups** — Rename sections, drag items between groups, reorder sections
 
 ## Screenshots
 
@@ -99,6 +125,8 @@ Stands up the control server on port 3456 with proxy to the Hermes WebUI (port 8
 ```
 hermes-control/
 ├── electron.cjs          # Electron main process (macOS titleBarStyle: hidden)
+├── install.sh            # One-line install script (macOS/Linux)
+├── install.ps1           # One-line install script (Windows)
 ├── server/
 │   └── index.js          # Express backend, PTY bridge, file API, calendar API
 ├── src/
@@ -108,7 +136,8 @@ hermes-control/
 │   ├── components/       # Page components (30+ component modules)
 │   ├── utils/
 │   │   ├── icons.js      # SVG icon library
-│   │   └── markdown.js   # Markdown renderer
+│   │   ├── markdown.js   # Markdown renderer
+│   │   └── pomodoro.js   # Shared Pomodoro timer state
 │   └── index.html        # HTML entry point
 ├── dist/                 # Production build output
 └── package.json
@@ -122,7 +151,7 @@ The Liquid Glass design language uses CSS custom properties for a complete desig
 - **Glass Materials** — `--glass-blur`, `--glass-bg-light/dark`, `--glass-card-*`
 - **Button States** — idle, clicked, disabled, active-idle, active-disabled with proper opacities
 - **Focus Ring** — Double-ring system with brand accent color
-- **Typography** — System font stack with -apple-system, SF Pro, Inter fallback
+- **Typography** — System font stack with -apple-system, SF Pro, Inter, Playfair Display fallback
 
 ## Tech Stack
 

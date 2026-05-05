@@ -161,6 +161,61 @@ export function renderSettings(container) {
           </div>
         </div>
 
+        <!-- Deploy -->
+        <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #32d74b, #0a84ff); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+            </div>
+            <div>
+              <div style="font-weight: 700; font-size: 15px;">Deploy Agents</div>
+              <div style="font-size: 11px; color: var(--text-muted);">One-click install for OpenClaw & Hermes Agent</div>
+            </div>
+          </div>
+
+          <!-- OpenClaw -->
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.04);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-main);">OpenClaw</div>
+                <div style="font-size:11px;color:var(--text-muted);">Personal AI assistant — multi-platform messaging</div>
+              </div>
+              <div style="display:flex;gap:4px;background:rgba(255,255,255,0.06);border-radius:6px;padding:2px;" id="deploy-os-selector">
+                <button class="deploy-os-btn active" data-os="mac" style="padding:4px 10px;border-radius:4px;border:none;background:var(--accent-gradient);color:#fff;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .12s;">macOS</button>
+                <button class="deploy-os-btn" data-os="win" style="padding:4px 10px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .12s;">Windows</button>
+                <button class="deploy-os-btn" data-os="linux" style="padding:4px 10px;border-radius:4px;border:none;background:transparent;color:var(--text-muted);font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .12s;">Linux</button>
+              </div>
+            </div>
+            <div id="deploy-openclaw-cmd" style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);border:0.5px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+              <code id="deploy-openclaw-code" style="flex:1;font-size:12px;font-family:var(--font-mono);color:#32d74b;white-space:pre-wrap;word-break:break-all;">npm install -g openclaw@latest</code>
+              <button id="deploy-openclaw-copy" style="flex-shrink:0;padding:4px 8px;border-radius:4px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit;transition:all .12s;">Copy</button>
+            </div>
+            <button id="deploy-openclaw-run" class="btn" style="width:100%;background:var(--accent-gradient);font-size:12px;">
+              Run in Terminal
+            </button>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:6px;opacity:.6;">Requires Node.js ≥ 22. Windows users need WSL2.</div>
+          </div>
+
+          <!-- Hermes Agent -->
+          <div style="padding: 16px 20px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-main);">Hermes Agent</div>
+                <div style="font-size:11px;color:var(--text-muted);">Self-improving AI agent by Nous Research — macOS only</div>
+              </div>
+              <span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(255,159,10,0.15);color:#ff9f0a;font-weight:600;">macOS</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;background:rgba(0,0,0,0.3);border:0.5px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+              <code id="deploy-hermes-code" style="flex:1;font-size:12px;font-family:var(--font-mono);color:#32d74b;white-space:pre-wrap;word-break:break-all;">curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash</code>
+              <button id="deploy-hermes-copy" style="flex-shrink:0;padding:4px 8px;border-radius:4px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.06);color:var(--text-muted);font-size:11px;cursor:pointer;font-family:inherit;transition:all .12s;">Copy</button>
+            </div>
+            <button id="deploy-hermes-run" class="btn" style="width:100%;background:linear-gradient(135deg,#ff9f0a,#ff453a);font-size:12px;">
+              Run in Terminal
+            </button>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:6px;opacity:.6;">macOS / Linux. Windows users: install via WSL2 first.</div>
+          </div>
+        </div>
+
         <!-- Data -->
         <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
           <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
@@ -209,6 +264,82 @@ export function renderSettings(container) {
   // Theme customizer
   container.querySelector('#settings-open-theme').addEventListener('click', () => {
     window.__navigateTo && window.__navigateTo('theme');
+  });
+
+  // ── Deploy section ──
+  const DEPLOY_CMDS = {
+    openclaw: {
+      mac: 'npm install -g openclaw@latest',
+      win: 'wsl -- npm install -g openclaw@latest',
+      linux: 'npm install -g openclaw@latest',
+    },
+    hermes: 'curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash',
+  };
+
+  // OS selector
+  container.querySelectorAll('.deploy-os-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.deploy-os-btn').forEach(b => {
+        b.style.background = 'transparent';
+        b.style.color = 'var(--text-muted)';
+        b.style.fontWeight = '500';
+        b.classList.remove('active');
+      });
+      btn.style.background = 'var(--accent-gradient)';
+      btn.style.color = '#fff';
+      btn.style.fontWeight = '600';
+      btn.classList.add('active');
+      const os = btn.dataset.os;
+      container.querySelector('#deploy-openclaw-code').textContent = DEPLOY_CMDS.openclaw[os];
+    });
+  });
+
+  // Copy buttons
+  container.querySelector('#deploy-openclaw-copy').addEventListener('click', () => {
+    const code = container.querySelector('#deploy-openclaw-code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = container.querySelector('#deploy-openclaw-copy');
+      btn.textContent = 'Copied';
+      btn.style.color = '#32d74b';
+      setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 1500);
+    });
+  });
+  container.querySelector('#deploy-hermes-copy').addEventListener('click', () => {
+    const code = container.querySelector('#deploy-hermes-code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+      const btn = container.querySelector('#deploy-hermes-copy');
+      btn.textContent = 'Copied';
+      btn.style.color = '#32d74b';
+      setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 1500);
+    });
+  });
+
+  // Run in Terminal buttons
+  container.querySelector('#deploy-openclaw-run').addEventListener('click', () => {
+    const activeOs = container.querySelector('.deploy-os-btn.active')?.dataset.os || 'mac';
+    const cmd = DEPLOY_CMDS.openclaw[activeOs];
+    if (window.__navigateTo) {
+      window.__navigateTo('terminal');
+      setTimeout(() => {
+        fetch('/ctrl/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: cmd, isRaw: true }),
+        });
+      }, 800);
+    }
+  });
+  container.querySelector('#deploy-hermes-run').addEventListener('click', () => {
+    if (window.__navigateTo) {
+      window.__navigateTo('terminal');
+      setTimeout(() => {
+        fetch('/ctrl/exec', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ command: DEPLOY_CMDS.hermes, isRaw: true }),
+        });
+      }, 800);
+    }
   });
 
   // Glass blur slider

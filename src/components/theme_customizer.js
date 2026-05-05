@@ -20,6 +20,7 @@ const THEMES = [
 const FONTS = [
   { id: 'default', label: 'Inter', desc: 'Smooth modern sans-serif' },
   { id: 'misans', label: 'MiSans', desc: 'Xiaomi clean sans-serif' },
+  { id: 'serif', label: 'Playfair Display', desc: 'Elegant editorial serif' },
   { id: 'mono', label: 'JetBrains Mono', desc: 'Monospace everything' },
   { id: 'apple', label: 'SF Pro', desc: 'Apple system font' },
 ];
@@ -32,6 +33,7 @@ const DESIGN_STYLES = [
   { id: 'minimal', label: 'Minimalism', desc: 'Max whitespace, typography-driven', icon: '▭' },
   { id: 'clay', label: 'Claymorphism', desc: '3D clay texture, vivid colors, soft edges', icon: '●' },
   { id: 'bento', label: 'Bento Design', desc: 'Grid blocks, mixed content, Apple-style', icon: '▦' },
+  { id: 'editorial', label: 'Editorial', desc: 'Luxury magazine aesthetic, serif typography', icon: '✦' },
 ];
 
 function hexToRgb(hex) {

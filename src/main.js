@@ -77,7 +77,7 @@ function rgbToHsl(r, g, b) {
 function applyVisuals() {
   const themeId = localStorage.getItem('hermes_theme') || 'default';
   const fontId = localStorage.getItem('hermes_font') || 'default';
-  const fonts = { 'default': 'font-default', 'terminal': 'font-terminal', 'square': 'font-square', 'mono': 'font-mono', 'roboto': 'font-roboto', 'apple': 'font-apple', 'dot': 'font-dot', 'misans': 'font-misans' };
+  const fonts = { 'default': 'font-default', 'terminal': 'font-terminal', 'square': 'font-square', 'mono': 'font-mono', 'roboto': 'font-roboto', 'apple': 'font-apple', 'dot': 'font-dot', 'misans': 'font-misans', 'serif': 'font-serif' };
 
   if (localStorage.getItem('hermes_accent_custom')) {
     // Custom colors — keep existing CSS var overrides

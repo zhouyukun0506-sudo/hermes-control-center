@@ -376,6 +376,7 @@ body.font-mono { --font-main: var(--font-mono); }
 body.font-apple { --font-main: -apple-system, sans-serif; }
 body.font-default { --font-main: 'Inter', sans-serif; }
 body.font-misans { --font-main: 'MiSans', 'Inter', sans-serif; }
+body.font-serif { --font-main: 'Playfair Display', 'Georgia', 'Times New Roman', serif; }
 
 /* ── App ── */
 #app {
@@ -2275,4 +2276,131 @@ body.style-bento .sidebar .logo-text {
   -webkit-text-fill-color: var(--accent);
   background: rgba(255,255,255,0.04);
   display: inline-block;
+}
+
+/* ── Editorial — Luxury Magazine Aesthetic ── */
+body.style-editorial {
+  --text-main: #2a2824;
+  --text-muted: #8a857e;
+  --text-tertiary: #b0aba4;
+  --text-quaternary: #cdc8c1;
+  --nav-hover: rgba(42, 40, 36, 0.06);
+  --fill-primary: rgba(42, 40, 36, 0.92);
+  --fill-secondary: rgba(42, 40, 36, 0.72);
+  --fill-tertiary: rgba(42, 40, 36, 0.48);
+  --fill-quaternary: rgba(42, 40, 36, 0.24);
+  --fill-quinary: rgba(42, 40, 36, 0.08);
+  background: #f5f2ed;
+  font-family: 'Georgia', 'Playfair Display', 'Times New Roman', serif;
+}
+body.style-editorial .sidebar {
+  background: #2a2824;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  box-shadow: none;
+}
+body.style-editorial .sidebar::before,
+body.style-editorial .sidebar::after { display: none; }
+body.style-editorial .sidebar .logo-text {
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: #e8e4de;
+}
+body.style-editorial .content-area {
+  background: #f5f2ed;
+  border: none;
+  box-shadow: none;
+}
+body.style-editorial .content-area::before,
+body.style-editorial .content-area::after { display: none; }
+body.style-editorial .card {
+  background: #ffffff;
+  border: 1px solid rgba(42, 40, 36, 0.08);
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(42, 40, 36, 0.04);
+  transition: box-shadow .2s ease;
+}
+body.style-editorial .card::before,
+body.style-editorial .card::after { display: none; }
+body.style-editorial .card:hover {
+  box-shadow: 0 2px 8px rgba(42, 40, 36, 0.08);
+  transform: none;
+}
+body.style-editorial .card:active { transform: none; }
+body.style-editorial .page-title {
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+body.style-editorial .page-subtitle {
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+body.style-editorial .nav-item {
+  border-radius: 2px;
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  margin: 1px 8px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  transition: all .15s ease;
+}
+body.style-editorial .nav-item:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: none;
+  transform: none;
+}
+body.style-editorial .nav-item.active {
+  background: rgba(255,255,255,0.10);
+  border-color: rgba(255,255,255,0.12);
+  box-shadow: none;
+}
+body.style-editorial .btn,
+body.style-editorial .glass-btn {
+  border-radius: 2px;
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 11px;
+  box-shadow: none;
+  border: 1px solid rgba(42, 40, 36, 0.15);
+}
+body.style-editorial .btn:hover,
+body.style-editorial .glass-btn:hover {
+  box-shadow: 0 1px 4px rgba(42, 40, 36, 0.1);
+  transform: none;
+}
+body.style-editorial .nav-group-header {
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  font-size: 11px;
+  color: rgba(255,255,255,0.4);
+}
+body.style-editorial .section-header {
+  font-family: 'Georgia', 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 13px;
+  color: #2a2824;
+}
+body.style-editorial .page-accent-bar {
+  height: 1px;
+  background: #2a2824;
+  opacity: 0.15;
+  border-radius: 0;
 }
