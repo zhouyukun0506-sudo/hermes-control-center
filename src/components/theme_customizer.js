@@ -5,6 +5,11 @@ const THEMES = [
   { id: 'matrix', label: 'Neon Matrix', desc: 'Green-on-black terminal aesthetic' },
   { id: 'vapor', label: 'Vaporwave', desc: 'Purple-pink gradient accents' },
   { id: 'white', label: 'Light Mode', desc: 'Clean white interface' },
+  { id: 'ocean', label: 'Ocean Breeze', desc: 'Deep teal with cyan glow' },
+  { id: 'sunset', label: 'Sunset Glow', desc: 'Warm amber and burnt orange' },
+  { id: 'forest', label: 'Forest Moss', desc: 'Deep emerald with olive tones' },
+  { id: 'rosegold', label: 'Rose Gold', desc: 'Warm rose metallic elegance' },
+  { id: 'arctic', label: 'Arctic Frost', desc: 'Icy blue with silver frost' },
   { id: 'fig1', label: '捣蓝·清水', desc: '图1 深海蓝配清水蓝' },
   { id: 'fig2', label: '紫·青绿', desc: '图2 深紫搭配青绿色' },
   { id: 'fig3', label: '无白·钛啡', desc: '图3 米白配钛啡红' },
@@ -17,6 +22,16 @@ const FONTS = [
   { id: 'misans', label: 'MiSans', desc: 'Xiaomi clean sans-serif' },
   { id: 'mono', label: 'JetBrains Mono', desc: 'Monospace everything' },
   { id: 'apple', label: 'SF Pro', desc: 'Apple system font' },
+];
+
+const DESIGN_STYLES = [
+  { id: 'glass', label: 'Liquid Glass', desc: 'macOS 26 translucent blur panels', icon: '◆' },
+  { id: 'neumorphism', label: 'Neumorphism', desc: 'Soft embossed shadows, no borders', icon: '◎' },
+  { id: 'flat', label: 'Flat Design', desc: 'Pure colors, no shadows, clean geometry', icon: '▬' },
+  { id: 'material', label: 'Material Design', desc: 'Elevation shadows, paper-like cards', icon: '▣' },
+  { id: 'minimal', label: 'Minimalism', desc: 'Max whitespace, typography-driven', icon: '▭' },
+  { id: 'clay', label: 'Claymorphism', desc: '3D clay texture, vivid colors, soft edges', icon: '●' },
+  { id: 'bento', label: 'Bento Design', desc: 'Grid blocks, mixed content, Apple-style', icon: '▦' },
 ];
 
 function hexToRgb(hex) {
@@ -83,6 +98,32 @@ export function renderThemeCustomizer(container) {
           </div>
           ${hasCustom ? '<div style="margin-top: 8px; font-size: 12px; color: var(--accent);">Using custom colors — select a preset to switch back</div>' : ''}
         </div>
+
+        <!-- Design Style -->
+        ${(() => {
+          const curStyle = localStorage.getItem('hermes_design_style') || 'glass';
+          return `
+        <div class="card" style="padding: 24px; margin-bottom: 20px;">
+          <div class="section-header">Design Style</div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px;">
+            ${DESIGN_STYLES.map(s => {
+              const active = curStyle === s.id;
+              return `
+                <div class="tc-style-card" data-style="${s.id}" style="
+                  padding: 16px; border-radius: 10px; cursor: pointer;
+                  border: 2px solid ${active ? 'var(--accent)' : 'var(--fill-quaternary)'};
+                  background: var(--card-bg); transition: all .15s;
+                  ${active ? 'box-shadow: 0 0 0 1px var(--accent);' : ''}
+                ">
+                  <div style="font-size: 20px; margin-bottom: 8px; opacity: 0.7;">${s.icon}</div>
+                  <div style="font-size: 13px; font-weight: 700; margin-bottom: 2px;">${s.label}</div>
+                  <div style="font-size: 11px; color: var(--text-muted);">${s.desc}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>`;
+        })()}
 
         <!-- Font Presets -->
         <div class="card" style="padding: 24px; margin-bottom: 20px;">
@@ -187,6 +228,14 @@ export function renderThemeCustomizer(container) {
     });
   });
 
+  container.querySelectorAll('.tc-style-card').forEach(el => {
+    el.addEventListener('click', () => {
+      localStorage.setItem('hermes_design_style', el.dataset.style);
+      apply();
+      showStatus('Design style applied');
+    });
+  });
+
   function applyCustom() {
     const accent = container.querySelector('#tc-accent').value;
     const bg = container.querySelector('#tc-bg').value;
@@ -234,6 +283,7 @@ export function renderThemeCustomizer(container) {
     localStorage.removeItem('hermes_bg_custom');
     localStorage.setItem('hermes_theme', 'default');
     localStorage.setItem('hermes_font', 'default');
+    localStorage.setItem('hermes_design_style', 'glass');
     document.documentElement.style.removeProperty('--accent');
     document.documentElement.style.removeProperty('--accent-gradient');
     document.documentElement.style.removeProperty('--bg-primary');
@@ -258,6 +308,7 @@ export function renderThemeCustomizer(container) {
     if (window.applyVisuals) window.applyVisuals();
     const curTheme = localStorage.getItem('hermes_theme') || 'default';
     const curFont = localStorage.getItem('hermes_font') || 'default';
+    const curStyle = localStorage.getItem('hermes_design_style') || 'glass';
     const hasCustom = !!localStorage.getItem('hermes_accent_custom');
     container.querySelectorAll('.tc-theme-card').forEach(c => {
       const active = c.dataset.theme === curTheme && !hasCustom;
@@ -266,6 +317,11 @@ export function renderThemeCustomizer(container) {
     });
     container.querySelectorAll('.tc-font-card').forEach(c => {
       const active = c.dataset.font === curFont;
+      c.style.borderColor = active ? 'var(--accent)' : 'var(--card-border)';
+      c.style.boxShadow = active ? '0 0 0 1px var(--accent)' : 'none';
+    });
+    container.querySelectorAll('.tc-style-card').forEach(c => {
+      const active = c.dataset.style === curStyle;
       c.style.borderColor = active ? 'var(--accent)' : 'var(--card-border)';
       c.style.boxShadow = active ? '0 0 0 1px var(--accent)' : 'none';
     });
@@ -278,6 +334,11 @@ function getThemePreview(id) {
     'matrix': { bg: '#0a0a0a', text: '#00ff41', muted: '#007a20', swatches: ['#0a0a0a', '#00ff41', '#00ff41'] },
     'vapor': { bg: '#1a0a2e', text: '#e0b0ff', muted: '#9b59b6', swatches: ['#1a0a2e', '#bf5af2', '#ff375f'] },
     'white': { bg: '#ffffff', text: '#1d1d1f', muted: '#6e6e73', swatches: ['#ffffff', '#BB2649', '#1d1d1f'] },
+    'ocean': { bg: '#0a1e2e', text: '#e0f4ff', muted: '#4a8ea8', swatches: ['#0a1e2e', '#00d4ff', '#0891b2'] },
+    'sunset': { bg: '#1e0f0a', text: '#fff0e0', muted: '#c47a3a', swatches: ['#1e0f0a', '#ff8c42', '#e8651a'] },
+    'forest': { bg: '#0a1a0e', text: '#e0f5e8', muted: '#4a8a5a', swatches: ['#0a1a0e', '#2ecc71', '#1a8a4a'] },
+    'rosegold': { bg: '#1a0f14', text: '#f5e8ed', muted: '#a87080', swatches: ['#1a0f14', '#e8879a', '#d4567a'] },
+    'arctic': { bg: '#0e1a24', text: '#e8f4ff', muted: '#6a9ab4', swatches: ['#0e1a24', '#7ec8e3', '#4fa8c8'] },
     'fig1': { bg: '#113056', text: '#f5f5f7', muted: '#6e9bb8', swatches: ['#113056', '#91CFD5', '#91CFD5'] },
     'fig2': { bg: '#6A1B9A', text: '#f5f5f7', muted: '#b388d4', swatches: ['#6A1B9A', '#00BFA5', '#00BFA5'] },
     'fig3': { bg: '#F1DDDF', text: '#1d1d1f', muted: '#8a6e72', swatches: ['#F1DDDF', '#E72D48', '#E72D48'] },
@@ -289,12 +350,14 @@ function getThemePreview(id) {
 
 function getDefaultAccent(theme) {
   const map = { 'default': '#BB2649', 'matrix': '#2ecc71', 'vapor': '#bf5af2', 'white': '#BB2649',
+    'ocean': '#00d4ff', 'sunset': '#ff8c42', 'forest': '#2ecc71', 'rosegold': '#e8879a', 'arctic': '#7ec8e3',
     'fig1': '#91CFD5', 'fig2': '#00BFA5', 'fig3': '#E72D48', 'fig4': '#E6397C', 'fig5': '#91C53A' };
   return map[theme] || '#BB2649';
 }
 
 function getDefaultBg(theme) {
   const map = { 'default': '#0a0a0a', 'matrix': '#0a0a0a', 'vapor': '#1a0a2e', 'white': '#fbfbfd',
+    'ocean': '#0a1e2e', 'sunset': '#1e0f0a', 'forest': '#0a1a0e', 'rosegold': '#1a0f14', 'arctic': '#0e1a24',
     'fig1': '#113056', 'fig2': '#6A1B9A', 'fig3': '#F1DDDF', 'fig4': '#1A1A1D', 'fig5': '#5E55A2' };
   return map[theme] || '#0a0a0a';
 }

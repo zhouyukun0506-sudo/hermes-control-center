@@ -26,6 +26,7 @@
         close: () => ipcRenderer.send('win-close'),
         minimize: () => ipcRenderer.send('win-minimize'),
         maximize: () => ipcRenderer.send('win-maximize'),
+        fullscreen: () => ipcRenderer.send('win-fullscreen'),
       };
     }
   </script>

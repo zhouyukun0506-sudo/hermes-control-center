@@ -41,13 +41,15 @@ const tombstoneCache = new Map();
 // ── Visual Initialization ──
 const THEME_ACCENTS = {
   'default': '#BB2649', 'matrix': '#2ecc71', 'vapor': '#bf5af2', 'white': '#BB2649',
+  'ocean': '#00d4ff', 'sunset': '#ff8c42', 'forest': '#2ecc71', 'rosegold': '#e8879a', 'arctic': '#7ec8e3',
   'fig1': '#91CFD5', 'fig2': '#00BFA5', 'fig3': '#E72D48', 'fig4': '#E6397C', 'fig5': '#91C53A',
 };
 const THEME_BGS = {
   'default': '#0a0a0a', 'matrix': '#0a0a0a', 'vapor': '#1a0a2e', 'white': '#fbfbfd',
+  'ocean': '#0a1e2e', 'sunset': '#1e0f0a', 'forest': '#0a1a0e', 'rosegold': '#1a0f14', 'arctic': '#0e1a24',
   'fig1': '#113056', 'fig2': '#6A1B9A', 'fig3': '#F1DDDF', 'fig4': '#1A1A1D', 'fig5': '#5E55A2',
 };
-const bgClasses = { 'default': 'dark-bg', 'matrix': 'matrix-bg', 'vapor': 'vapor-bg', 'white': 'white-bg', 'fig1': 'fig1-bg', 'fig2': 'fig2-bg', 'fig3': 'fig3-bg', 'fig4': 'fig4-bg', 'fig5': 'fig5-bg' };
+const bgClasses = { 'default': 'dark-bg', 'matrix': 'matrix-bg', 'vapor': 'vapor-bg', 'white': 'white-bg', 'ocean': 'ocean-bg', 'sunset': 'sunset-bg', 'forest': 'forest-bg', 'rosegold': 'rosegold-bg', 'arctic': 'arctic-bg', 'fig1': 'fig1-bg', 'fig2': 'fig2-bg', 'fig3': 'fig3-bg', 'fig4': 'fig4-bg', 'fig5': 'fig5-bg' };
 
 function hexToRgb(hex) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -91,7 +93,8 @@ function applyVisuals() {
     document.documentElement.style.setProperty('--bg-primary', bg);
     document.body.style.removeProperty('background');
   }
-  document.body.className = `${bgClasses[themeId] || 'dark-bg'} ${fonts[fontId] || 'font-default'}`;
+  const designStyle = localStorage.getItem('hermes_design_style') || 'glass';
+  document.body.className = `${bgClasses[themeId] || 'dark-bg'} ${fonts[fontId] || 'font-default'} style-${designStyle}`;
 }
 applyVisuals();
 applySavedSettings();
@@ -428,7 +431,12 @@ document.addEventListener('keydown', (e) => {
   // If shortcut capture is active in settings, don't interfere
   if (window.__shortcutCaptureActive) return;
   // Don't hijack shortcuts when typing in inputs
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  const tag = e.target.tagName;
+  const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+    || e.target.isContentEditable
+    || e.target.closest('.xterm-helper-textarea')
+    || e.target.closest('[contenteditable="true"]');
+  if (isEditable) return;
   // Don't hijack when command palette is open
   if (document.getElementById('qa-palette')?.style.display !== 'none') return;
 
@@ -451,8 +459,7 @@ document.addEventListener('keydown', (e) => {
       if (window.__openGlobalChat) window.__openGlobalChat();
       return;
     }
-    // Page navigation — skip if user is typing in input
-    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+    // Page navigation
     e.preventDefault();
     navigate(target);
     return;
@@ -469,6 +476,22 @@ document.addEventListener('keydown', (e) => {
   if (isMeta && (e.key === ']' || e.key === 'ArrowRight')) {
     e.preventDefault();
     navigateForward();
+    return;
+  }
+
+  // ↑/↓ → cycle through nav items (global, works from content area)
+  if (!isMeta && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+    const navItems = [...document.querySelectorAll('.nav-item')];
+    if (navItems.length === 0) return;
+    const currentIdx = navItems.findIndex(el => el.dataset.page === currentPage);
+    let nextIdx;
+    if (e.key === 'ArrowDown') {
+      nextIdx = currentIdx < navItems.length - 1 ? currentIdx + 1 : 0;
+    } else {
+      nextIdx = currentIdx > 0 ? currentIdx - 1 : navItems.length - 1;
+    }
+    e.preventDefault();
+    navigate(navItems[nextIdx].dataset.page);
     return;
   }
 });

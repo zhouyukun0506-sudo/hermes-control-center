@@ -125,6 +125,11 @@ ipcMain.on('win-maximize', () => {
     mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize();
   }
 });
+ipcMain.on('win-fullscreen', () => {
+  if (mainWindow) {
+    mainWindow.setFullScreen(!mainWindow.isFullScreen());
+  }
+});
 
 // Bypass further security restrictions
 app.commandLine.appendSwitch('disable-site-isolation-trials');
