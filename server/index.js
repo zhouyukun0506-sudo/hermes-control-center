@@ -100,6 +100,36 @@ async function detectOpenClaw() {
     : { running: false, port: null, url: null };
 }
 
+function getOpenClawDashboardUrl(port) {
+  return new Promise(r => {
+    const child = spawn('openclaw', ['dashboard', '--no-open'], {
+      env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` },
+      timeout: 5000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    child.stdout.on('data', d => { stdout += d.toString(); });
+    child.on('close', () => {
+      const match = stdout.match(/(?:Dashboard URL:\s*)(https?:\/\/[^\s]+)/i);
+      if (match) r(match[1].trim());
+      else r(getTokenFromConfig(port));
+    });
+    child.on('error', () => r(getTokenFromConfig(port)));
+  });
+}
+
+function getTokenFromConfig(port) {
+  try {
+    const p = path.join(HOME, '.openclaw', 'openclaw.json');
+    if (fs.existsSync(p)) {
+      const cfg = JSON.parse(fs.readFileSync(p, 'utf-8'));
+      const token = cfg?.gateway?.auth?.token;
+      if (token) return `http://127.0.0.1:${port}/#token=${token}`;
+    }
+  } catch {}
+  return null;
+}
+
 function startOpenClaw() {
   return new Promise(async (resolve) => {
     const child = spawn('openclaw', ['gateway'], {
@@ -111,9 +141,15 @@ function startOpenClaw() {
     for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 1500));
       const oc = await detectOpenClaw();
-      if (oc.running) { resolve(oc); return; }
+      if (oc.running) {
+        oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
+        resolve(oc);
+        return;
+      }
     }
-    resolve(await detectOpenClaw());
+    const oc = await detectOpenClaw();
+    if (oc.running) oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
+    resolve(oc);
   });
 }
 
@@ -140,11 +176,13 @@ async function getStats() {
 
 app.get('/ctrl/status', async (req, res) => {
   const [h, g, s, oc] = await Promise.all([checkHealth(), Promise.resolve(checkGateway()), getStats(), detectOpenClaw()]);
+  if (oc.running) oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
   res.json({ gateway_running: g, webui_running: h.online, webui_status: h.online ? h : null, stats: s, openclaw_running: oc.running, openclaw_url: oc.url, timestamp: Date.now() });
 });
 
 app.get('/ctrl/openclaw/status', async (req, res) => {
   const oc = await detectOpenClaw();
+  if (oc.running) oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
   res.json(oc);
 });
 

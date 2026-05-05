@@ -136,7 +136,6 @@ function startOpenClaw() {
     const macPath = `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`;
 
     if (isWin) {
-      // On Windows, openclaw gateway needs admin — spawn elevated PowerShell
       const psScript = `Start-Process powershell -Verb RunAs -ArgumentList '-NoExit -Command "openclaw gateway"'`;
       const child = spawn('powershell.exe', ['-Command', psScript], {
         env: { ...process.env, PATH: winPath },
@@ -152,15 +151,68 @@ function startOpenClaw() {
       child.unref();
     }
 
-    // Wait for gateway to come up, then detect
+    // Wait for gateway to come up, then detect + get dashboard URL with token
     for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 1500));
       const oc = await detectOpenClaw();
-      if (oc.running) { resolve(oc); return; }
+      if (oc.running) {
+        // Get dashboard URL with auth token
+        oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
+        resolve(oc);
+        return;
+      }
     }
-    // Final check
-    resolve(await detectOpenClaw());
+    const oc = await detectOpenClaw();
+    if (oc.running) oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
+    resolve(oc);
   });
+}
+
+// Get the dashboard URL with token by running `openclaw dashboard --no-open`
+function getOpenClawDashboardUrl(port) {
+  return new Promise(r => {
+    const isWin = process.platform === 'win32';
+    const env = { ...process.env };
+    if (isWin) env.PATH = `${process.env.APPDATA || ''}\\npm;${env.PATH || ''}`;
+    else env.PATH = `${HOME}/bin:${HOME}/.local/bin:${env.PATH}`;
+
+    const child = spawn('openclaw', ['dashboard', '--no-open'], {
+      env,
+      timeout: 5000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '';
+    child.stdout.on('data', d => { stdout += d.toString(); });
+    child.on('close', () => {
+      // Parse "Dashboard URL: http://..." from output
+      const match = stdout.match(/(?:Dashboard URL:\s*)(https?:\/\/[^\s]+)/i);
+      if (match) {
+        r(match[1].trim());
+      } else {
+        // Fallback: construct URL with token from config file
+        r(getTokenFromConfig(port));
+      }
+    });
+    child.on('error', () => r(getTokenFromConfig(port)));
+  });
+}
+
+// Fallback: read token from openclaw config file
+function getTokenFromConfig(port) {
+  try {
+    const isWin = process.platform === 'win32';
+    const configPaths = isWin
+      ? [path.join(process.env.APPDATA || '', 'openclaw', 'openclaw.json'), path.join(HOME, '.openclaw', 'openclaw.json')]
+      : [path.join(HOME, '.openclaw', 'openclaw.json')];
+    for (const p of configPaths) {
+      if (fs.existsSync(p)) {
+        const cfg = JSON.parse(fs.readFileSync(p, 'utf-8'));
+        const token = cfg?.gateway?.auth?.token;
+        if (token) return `http://127.0.0.1:${port}/#token=${token}`;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 // ── Calendar ──
@@ -205,6 +257,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/ctrl/status') {
     const [h, g, s, oc] = await Promise.all([checkHealth(), checkGateway(), Promise.resolve(getStats()), detectOpenClaw()]);
+    if (oc.running) oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ gateway_running: g, webui_running: h.online, webui_status: h.online ? h : null, stats: s, openclaw_running: oc.running, openclaw_url: oc.url, timestamp: Date.now() }));
     return;
@@ -212,6 +265,7 @@ const server = http.createServer(async (req, res) => {
 
   if (pathname === '/ctrl/openclaw/status') {
     const oc = await detectOpenClaw();
+    if (oc.running) oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(oc));
     return;
