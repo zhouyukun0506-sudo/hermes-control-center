@@ -15,15 +15,22 @@ function startBackend() {
 }
 
 function createWindow() {
+  const isMac = process.platform === 'darwin';
+
   mainWindow = new BrowserWindow({
     width: 1280,
     height: 800,
-    transparent: true,
-    titleBarStyle: 'hidden',
-    trafficLightPosition: { x: -100, y: -100 },
-    backgroundColor: '#00000000',
-    hasShadow: true,
-    roundedCorners: true,
+    ...(isMac ? {
+      transparent: true,
+      titleBarStyle: 'hidden',
+      trafficLightPosition: { x: -100, y: -100 },
+      backgroundColor: '#00000000',
+      hasShadow: true,
+      roundedCorners: true,
+    } : {
+      backgroundColor: '#0f0f0f',
+      frame: true,
+    }),
     webPreferences: {
       webSecurity: false,
       partition: 'persist:hermes',
@@ -64,9 +71,19 @@ function createWindow() {
     mainWindow = null;
   });
 
-  setTimeout(() => {
-    mainWindow.loadURL('http://127.0.0.1:3456');
-  }, 1000);
+  // Retry loading until backend is ready
+  let loaded = false;
+  function tryLoad(attempts) {
+    if (loaded || !mainWindow) return;
+    mainWindow.loadURL('http://127.0.0.1:3456').then(() => {
+      loaded = true;
+    }).catch(() => {
+      if (attempts < 20) {
+        setTimeout(() => tryLoad(attempts + 1), 500);
+      }
+    });
+  }
+  setTimeout(() => tryLoad(0), 500);
 }
 
 // ── Tray: tombstone indicator + restore ──
