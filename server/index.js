@@ -79,7 +79,7 @@ app.use((req, res, next) => {
 });
 
 // ── OpenClaw WebUI Detection ──
-const OPENCLAW_PORTS = [3000, 3001, 4000, 5173, 5174, 5175, 8080, 8081, 8888, 9000, 9090, 10000];
+const OPENCLAW_PORTS = [3000, 3001, 4000, 5173, 5174, 5175, 8080, 8081, 8888, 9000, 9090, 10000, 18789];
 
 function checkPort(port) {
   return new Promise(r => {
@@ -101,17 +101,19 @@ async function detectOpenClaw() {
 }
 
 function startOpenClaw() {
-  return new Promise(r => {
-    const child = spawn('openclaw', [], {
+  return new Promise(async (resolve) => {
+    const child = spawn('openclaw', ['gateway'], {
       env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` },
       detached: true,
       stdio: 'ignore',
     });
     child.unref();
-    setTimeout(async () => {
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 1500));
       const oc = await detectOpenClaw();
-      r(oc);
-    }, 3000);
+      if (oc.running) { resolve(oc); return; }
+    }
+    resolve(await detectOpenClaw());
   });
 }
 

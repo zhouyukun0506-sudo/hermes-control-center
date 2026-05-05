@@ -329,7 +329,7 @@ window.__renderPageToContainer = (pageId, container) => {
     case 'calendar': renderCalendar(container, ctx); break;
     case 'theme': renderThemeCustomizer(container); break;
     case 'original_webui': renderIframeWebUI(container, currentSessionId); break;
-    case 'openclaw_webui': renderIframeWebUI(container, null, status.openclaw_url); break;
+    case 'openclaw_webui': renderIframeWebUI(container, null, window.__openclaw_url || status.openclaw_url || localStorage.getItem('hermes_openclaw_url')); break;
     case 'browser_pages': renderBrowserManager(container); break;
     case 'comparison_search': renderComparisonSearch(container); break;
     case 'flip_clock': renderFlipClock(container); break;
@@ -371,7 +371,7 @@ function renderMain() {
     case 'calendar': renderCalendar(pageEl, ctx); break;
     case 'theme': renderThemeCustomizer(pageEl); break;
     case 'original_webui': renderIframeWebUI(pageEl, currentSessionId); break;
-    case 'openclaw_webui': renderIframeWebUI(pageEl, null, status.openclaw_url); break;
+    case 'openclaw_webui': renderIframeWebUI(pageEl, null, window.__openclaw_url || status.openclaw_url || localStorage.getItem('hermes_openclaw_url')); break;
     case 'browser_pages': renderBrowserManager(pageEl); break;
     case 'comparison_search': renderComparisonSearch(pageEl); break;
     case 'flip_clock': renderFlipClock(pageEl); break;

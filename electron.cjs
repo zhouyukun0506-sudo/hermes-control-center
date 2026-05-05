@@ -30,7 +30,7 @@ function initShell() {
   if (shellProcess) return;
   const isWin = process.platform === 'win32';
   if (isWin) {
-    shellProcess = spawn('cmd.exe', [], {
+    shellProcess = spawn('powershell.exe', ['-NoLogo', '-NoProfile'], {
       env: { ...process.env, TERM: 'xterm-256color' },
     });
   } else {
@@ -107,7 +107,7 @@ function getStats() {
 }
 
 // ── OpenClaw WebUI Detection ──
-const OPENCLAW_PORTS = [3000, 3001, 4000, 5173, 5174, 5175, 8080, 8081, 8888, 9000, 9090, 10000];
+const OPENCLAW_PORTS = [3000, 3001, 4000, 5173, 5174, 5175, 8080, 8081, 8888, 9000, 9090, 10000, 18789];
 
 function checkPort(port) {
   return new Promise(r => {
@@ -130,28 +130,36 @@ async function detectOpenClaw() {
 
 // ── OpenClaw Start ──
 function startOpenClaw() {
-  return new Promise(r => {
+  return new Promise(async (resolve) => {
     const isWin = process.platform === 'win32';
-    let child;
+    const winPath = `${process.env.APPDATA || ''}\\npm;${process.env.PATH || ''}`;
+    const macPath = `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}`;
+
     if (isWin) {
-      child = spawn('cmd.exe', ['/c', 'openclaw'], {
-        env: { ...process.env, PATH: `${process.env.APPDATA}\\npm;${process.env.PATH}` },
-        detached: true,
+      // On Windows, openclaw gateway needs admin — spawn elevated PowerShell
+      const psScript = `Start-Process powershell -Verb RunAs -ArgumentList '-NoExit -Command "openclaw gateway"'`;
+      const child = spawn('powershell.exe', ['-Command', psScript], {
+        env: { ...process.env, PATH: winPath },
         stdio: 'ignore',
       });
+      child.unref();
     } else {
-      child = spawn('openclaw', [], {
-        env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` },
+      const child = spawn('openclaw', ['gateway'], {
+        env: { ...process.env, PATH: macPath },
         detached: true,
         stdio: 'ignore',
       });
+      child.unref();
     }
-    child.unref();
-    // Give it a moment to start, then check
-    setTimeout(async () => {
+
+    // Wait for gateway to come up, then detect
+    for (let i = 0; i < 10; i++) {
+      await new Promise(r => setTimeout(r, 1500));
       const oc = await detectOpenClaw();
-      r(oc);
-    }, 3000);
+      if (oc.running) { resolve(oc); return; }
+    }
+    // Final check
+    resolve(await detectOpenClaw());
   });
 }
 

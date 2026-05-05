@@ -83,6 +83,12 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
                 ${ocOnline ? 'Open' : 'N/A'}
               </button>
             </div>
+            ${!ocOnline ? `
+            <div style="margin-top:10px; display:flex; gap:6px; align-items:center;">
+              <input id="oc-manual-url" type="text" placeholder="Or paste OpenClaw URL (e.g. http://127.0.0.1:18789)"
+                style="flex:1; background:rgba(255,255,255,0.04); border:0.5px solid rgba(255,255,255,0.08); border-radius:6px; padding:5px 10px; font-size:11px; color:var(--text-main); font-family:var(--font-mono); outline:none;" />
+              <button id="oc-manual-connect" class="glass-btn" style="border-radius:6px; padding:5px 10px; font-size:11px; font-weight:600; white-space:nowrap;">Connect</button>
+            </div>` : ''}
           </div>
         </div>
 
@@ -272,6 +278,24 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
         ocStatusBtn.classList.remove('loading');
         ocStatusBtn.textContent = 'N/A';
       }
+    });
+  }
+
+  // ── OpenClaw Manual URL ──
+  const ocManualInput = container.querySelector('#oc-manual-url');
+  const ocManualBtn = container.querySelector('#oc-manual-connect');
+  if (ocManualBtn && ocManualInput) {
+    ocManualBtn.addEventListener('click', () => {
+      let url = ocManualInput.value.trim();
+      if (!url) return;
+      if (!url.startsWith('http')) url = 'http://' + url;
+      // Store and navigate to OpenClaw with custom URL
+      localStorage.setItem('hermes_openclaw_url', url);
+      window.__openclaw_url = url;
+      window.__navigateTo && window.__navigateTo('openclaw_webui');
+    });
+    ocManualInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') ocManualBtn.click();
     });
   }
 
