@@ -7,6 +7,7 @@ const { spawn, execSync } = require('child_process');
 let mainWindow;
 let tray = null;
 let isQuitting = false;
+let openclawProcess = null;
 const LOCAL_PORT = 3456;
 const HOME = process.env.USERPROFILE || process.env.HOME || '';
 const HERMES_UP = path.join(HOME, 'bin', 'hermes-up');
@@ -141,14 +142,18 @@ function startOpenClaw() {
         env: { ...process.env, PATH: winPath },
         stdio: 'ignore',
       });
+      openclawProcess = child;
       child.unref();
+      child.on('exit', () => { openclawProcess = null; });
     } else {
       const child = spawn('openclaw', ['gateway'], {
         env: { ...process.env, PATH: macPath },
         detached: true,
         stdio: 'ignore',
       });
+      openclawProcess = child;
       child.unref();
+      child.on('exit', () => { openclawProcess = null; });
     }
 
     // Wait for gateway to come up, then detect + get dashboard URL with token
@@ -156,7 +161,6 @@ function startOpenClaw() {
       await new Promise(r => setTimeout(r, 1500));
       const oc = await detectOpenClaw();
       if (oc.running) {
-        // Get dashboard URL with auth token
         oc.url = await getOpenClawDashboardUrl(oc.port) || oc.url;
         resolve(oc);
         return;
@@ -168,27 +172,40 @@ function startOpenClaw() {
   });
 }
 
-// ── OpenClaw Stop ──
+// ── OpenClaw Stop (kill the tracked process) ──
 function stopOpenClaw() {
-  return new Promise((resolve, reject) => {
-    const isWin = process.platform === 'win32';
-    const env = { ...process.env };
-    if (isWin) env.PATH = `${process.env.APPDATA || ''}\\npm;${env.PATH || ''}`;
-    else env.PATH = `${HOME}/bin:${HOME}/.local/bin:${env.PATH}`;
-
-    const child = spawn('openclaw', ['gateway', 'stop'], {
-      env,
-      timeout: 10000,
-      stdio: ['ignore', 'pipe', 'pipe'],
+  return new Promise((resolve) => {
+    if (openclawProcess) {
+      try {
+        const isWin = process.platform === 'win32';
+        if (isWin) {
+          // Kill the whole process tree (PowerShell + openclaw gateway children)
+          spawn('taskkill', ['/F', '/T', '/PID', String(openclawProcess.pid)], { stdio: 'ignore' });
+        } else {
+          process.kill(-openclawProcess.pid, 'SIGTERM');
+        }
+      } catch {}
+      openclawProcess = null;
+    }
+    // Also kill by port as fallback (handles cases where process ref was lost)
+    detectOpenClaw().then(oc => {
+      if (!oc.running) { resolve(); return; }
+      const isWin = process.platform === 'win32';
+      if (isWin) {
+        spawn('powershell.exe', ['-Command',
+          `$c = Get-NetTCPConnection -LocalPort ${oc.port} -ErrorAction SilentlyContinue; if($c){$c | ForEach-Object{ Stop-Process -Id $_.OwningProcess -Force }}`],
+          { stdio: 'ignore' }).on('close', () => resolve());
+      } else {
+        const child = spawn('lsof', ['-ti', `:${oc.port}`], { stdio: ['ignore', 'pipe', 'ignore'] });
+        let pid = '';
+        child.stdout.on('data', d => { pid += d.toString(); });
+        child.on('close', () => {
+          pid.trim().split('\n').filter(Boolean).forEach(p => { try { process.kill(parseInt(p), 'SIGTERM'); } catch {} });
+          resolve();
+        });
+        child.on('error', () => resolve());
+      }
     });
-    let stdout = '', stderr = '';
-    child.stdout.on('data', d => { stdout += d.toString(); });
-    child.stderr.on('data', d => { stderr += d.toString(); });
-    child.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(stderr || stdout || `Exit code ${code}`));
-    });
-    child.on('error', (err) => reject(err));
   });
 }
 

@@ -130,6 +130,8 @@ function getTokenFromConfig(port) {
   return null;
 }
 
+let openclawProcess = null;
+
 function startOpenClaw() {
   return new Promise(async (resolve) => {
     const child = spawn('openclaw', ['gateway'], {
@@ -137,7 +139,9 @@ function startOpenClaw() {
       detached: true,
       stdio: 'ignore',
     });
+    openclawProcess = child;
     child.unref();
+    child.on('exit', () => { openclawProcess = null; });
     for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 1500));
       const oc = await detectOpenClaw();
@@ -154,19 +158,23 @@ function startOpenClaw() {
 }
 
 function stopOpenClaw() {
-  return new Promise((resolve, reject) => {
-    const child = spawn('openclaw', ['gateway', 'stop'], {
-      env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` },
-      timeout: 10000,
-      stdio: ['ignore', 'pipe', 'pipe'],
+  return new Promise((resolve) => {
+    if (openclawProcess) {
+      try { process.kill(-openclawProcess.pid, 'SIGTERM'); } catch {}
+      openclawProcess = null;
+    }
+    // Fallback: kill by port
+    detectOpenClaw().then(oc => {
+      if (!oc.running) { resolve(); return; }
+      const child = spawn('lsof', ['-ti', `:${oc.port}`], { stdio: ['ignore', 'pipe', 'ignore'] });
+      let pid = '';
+      child.stdout.on('data', d => { pid += d.toString(); });
+      child.on('close', () => {
+        pid.trim().split('\n').filter(Boolean).forEach(p => { try { process.kill(parseInt(p), 'SIGTERM'); } catch {} });
+        resolve();
+      });
+      child.on('error', () => resolve());
     });
-    let stderr = '';
-    child.stderr.on('data', d => { stderr += d.toString(); });
-    child.on('close', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(stderr || `Exit code ${code}`));
-    });
-    child.on('error', (err) => reject(err));
   });
 }
 
