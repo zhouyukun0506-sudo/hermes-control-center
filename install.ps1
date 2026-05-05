@@ -16,9 +16,6 @@ if (-not (Check-Command "git")) {
     Write-Host ""
     Write-Host "  Install Git first:" -ForegroundColor Yellow
     Write-Host "    winget install Git.Git" -ForegroundColor White
-    Write-Host "    or download from: https://git-scm.com/download/win" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  After installing Git, restart PowerShell and run this script again." -ForegroundColor Yellow
     exit 1
 }
 
@@ -28,19 +25,16 @@ if (-not (Check-Command "node")) {
     Write-Host ""
     Write-Host "  Install Node.js first:" -ForegroundColor Yellow
     Write-Host "    winget install OpenJS.NodeJS.LTS" -ForegroundColor White
-    Write-Host "    or download from: https://nodejs.org" -ForegroundColor DarkGray
     exit 1
 }
 
-# Check npm
 if (-not (Check-Command "npm")) {
-    Write-Host "  [!] npm is not installed (usually comes with Node.js)." -ForegroundColor Red
+    Write-Host "  [!] npm is not installed." -ForegroundColor Red
     exit 1
 }
 
-$nodeVer = node --version
 Write-Host "  Git: $(git --version)" -ForegroundColor DarkGray
-Write-Host "  Node: $nodeVer" -ForegroundColor DarkGray
+Write-Host "  Node: $(node --version)" -ForegroundColor DarkGray
 Write-Host ""
 
 $Repo = "https://github.com/zhouyukun0506-sudo/hermes-control-center.git"
@@ -56,11 +50,11 @@ if (Test-Path $InstallDir) {
     Set-Location $InstallDir
 }
 
-# Install dependencies (skip Electron on Windows to avoid SSL issues — can install later)
+# Use Taobao mirror for Electron download (faster & avoids SSL issues in China)
+$env:ELECTRON_MIRROR = "https://npmmirror.com/mirrors/electron/"
+
 Write-Host "  Installing dependencies..." -ForegroundColor Cyan
-$env:ELECTRON_SKIP_BINARY_DOWNLOAD = "1"
-npm install --ignore-scripts
-npm install electron @electron/get --save-dev
+npm install
 
 Write-Host "  Building frontend..." -ForegroundColor Cyan
 npx vite build
