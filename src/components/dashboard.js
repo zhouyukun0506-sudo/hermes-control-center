@@ -95,6 +95,22 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
            ${consoleLines.length > 0 ? `<div class="console-output">${ansiToHtml(consoleLines.join('\n'))}</div>` : ''}
         </div>
 
+        <!-- WebUI Tabs -->
+        <div style="margin-top: 24px;">
+          <div style="display:flex;gap:2px;background:var(--fill-quinary);border-radius:10px;padding:3px;margin-bottom:16px;" id="webui-tabs">
+            <button class="webui-tab active" data-tab="hermes" style="flex:1;padding:8px 16px;border:none;border-radius:8px;background:var(--accent-gradient);color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;">
+              Hermes${online ? ' · Online' : ''}
+            </button>
+            <button class="webui-tab${ocOnline ? ' active' : ''}" data-tab="openclaw" style="flex:1;padding:8px 16px;border:none;border-radius:8px;background:${ocOnline && !online ? 'var(--accent-gradient)' : 'transparent'};color:${ocOnline && !online ? '#fff' : 'var(--text-muted)'};font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .15s;">
+              OpenClaw${ocOnline ? ` · :${ocUrl?.replace('http://127.0.0.1', '') || ''}` : ' · Not Found'}
+            </button>
+          </div>
+          <div id="webui-frame" style="border-radius:12px;overflow:hidden;border:0.5px solid rgba(255,255,255,0.06);background:#000;height:500px;">
+            <iframe id="webui-iframe-hermes" src="http://localhost:8787/" style="width:100%;height:100%;border:none;display:block;"></iframe>
+            ${ocOnline ? `<iframe id="webui-iframe-openclaw" src="${escAttr(ocUrl)}" style="width:100%;height:100%;border:none;display:none;"></iframe>` : ''}
+          </div>
+        </div>
+
         <!-- Sticky Notes -->
         <div class="notes-section" style="margin-top: 24px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -246,6 +262,34 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
   });
 
   renderNotes();
+
+  // ── WebUI Tab Switching ──
+  const tabs = container.querySelectorAll('.webui-tab');
+  const hermesFrame = container.querySelector('#webui-iframe-hermes');
+  const openclawFrame = container.querySelector('#webui-iframe-openclaw');
+  let activeTab = online ? 'hermes' : (ocOnline ? 'openclaw' : 'hermes');
+
+  function switchTab(tab) {
+    activeTab = tab;
+    tabs.forEach(t => {
+      const isActive = t.dataset.tab === tab;
+      t.classList.toggle('active', isActive);
+      if (isActive) {
+        t.style.background = 'var(--accent-gradient)';
+        t.style.color = '#fff';
+        t.style.fontWeight = '600';
+      } else {
+        t.style.background = 'transparent';
+        t.style.color = 'var(--text-muted)';
+        t.style.fontWeight = '500';
+      }
+    });
+    if (hermesFrame) hermesFrame.style.display = tab === 'hermes' ? 'block' : 'none';
+    if (openclawFrame) openclawFrame.style.display = tab === 'openclaw' ? 'block' : 'none';
+  }
+
+  tabs.forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+  switchTab(activeTab);
 }
 
 function updateConsole(container) {
@@ -260,6 +304,7 @@ function updateConsole(container) {
 }
 
 function escHtml(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function escAttr(s) { return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function formatUptime(seconds) {
   if (!seconds) return '0s';
