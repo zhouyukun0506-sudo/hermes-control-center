@@ -28,35 +28,60 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
         </div>
 
         <!-- Hero Card -->
-        <div class="card hero-card" style="margin-bottom: 28px; display: flex; align-items: center; justify-content: space-between; padding: 24px 28px;">
-          <div style="z-index: 2;">
-            <div style="color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Workbench</div>
-            <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.3px; color: inherit;">
-              ${online ? 'Systems Live' : 'System Paused'}
-            </h2>
-            <p style="color: var(--text-muted); font-size: 14px; max-width: 340px; line-height: 1.5; margin-bottom: 20px;">
-              ${online ? 'All services are active and running. Your workspace is ready.' : 'The service is currently idle. Tap the broadcast control to start.'}
-            </p>
-
-            <div style="display: flex; gap: 10px;">
-              ${!online ? `
-                <button id="history-btn" class="glass-btn" style="border-radius: 20px; padding: 8px 20px; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.08);">
-                  Initialize WebUI
-                </button>
-              ` : ''}
+        <div class="card hero-card" style="margin-bottom: 28px; padding: 24px 28px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <div style="z-index: 2;">
+              <div style="color: var(--accent); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Workbench</div>
+              <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.3px; color: inherit;">
+                Control Center
+              </h2>
+              <p style="color: var(--text-muted); font-size: 13px; max-width: 400px; line-height: 1.5;">
+                ${online ? 'Hermes is active.' : 'Hermes is idle.'} ${ocOnline ? 'OpenClaw detected.' : ''}
+              </p>
             </div>
           </div>
 
-          <div id="power-btn" style="cursor: pointer; position: relative; width: 88px; height: 88px; display: flex; align-items: center; justify-content: center; z-index: 2; transition: transform 0.2s;">
-            <div class="pulse-ring" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 1.5px solid ${online ? 'var(--accent)' : 'rgba(255,255,255,0.12)'}; opacity: ${online ? '0.2' : '0.5'}; animation: ${online ? 'pulse 2s infinite' : 'none'};"></div>
-            <div style="width: 56px; height: 56px; border-radius: 50%; background: ${online ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.04)'}; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: ${online ? '0 4px 16px rgba(0,135,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' : '0 2px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2), inset 0 -1px 0 rgba(255,255,255,0.05)'}; border: 1px solid ${online ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'};">
-               <div style="color: ${online ? '#fff' : 'var(--text-main)'};">
-                 ${online ? `
-                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg>
-                 ` : `
-                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="8 5 19 12 8 19 8 5" fill="rgba(255,255,255,0.9)" stroke="none"></polygon></svg>
-                 `}
-               </div>
+          <div style="display: flex; gap: 16px;">
+            <!-- Hermes Power -->
+            <div style="flex:1; display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px 18px;">
+              <div id="power-btn-hermes" style="cursor:pointer; position:relative; width:52px; height:52px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:transform 0.2s;">
+                <div style="position:absolute; width:100%; height:100%; border-radius:50%; border:1.5px solid ${online ? 'var(--accent)' : 'rgba(255,255,255,0.12)'}; opacity:${online ? '0.2' : '0.5'}; animation:${online ? 'pulse 2s infinite' : 'none'};"></div>
+                <div style="width:40px; height:40px; border-radius:50%; background:${online ? 'var(--accent-gradient)' : 'rgba(255,255,255,0.04)'}; display:flex; align-items:center; justify-content:center; transition:all 0.3s; box-shadow:${online ? '0 4px 16px rgba(0,135,255,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' : '0 2px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2)'}; border:1px solid ${online ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'};">
+                  <div style="color:${online ? '#fff' : 'var(--text-main)'};">
+                    ${online
+                      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="6" width="12" height="12"></rect></svg>'
+                      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="8 5 19 12 8 19 8 5" fill="rgba(255,255,255,0.9)" stroke="none"></polygon></svg>'}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:2px;">Hermes</div>
+                <div style="font-size:11px; color:${online ? 'var(--online-color)' : 'var(--text-muted)'};">${online ? 'Running' : 'Stopped'}</div>
+              </div>
+              <button id="history-btn" class="glass-btn" style="margin-left:auto; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:600; white-space:nowrap;">
+                ${online ? 'Stop' : 'Start'}
+              </button>
+            </div>
+
+            <!-- OpenClaw Power -->
+            <div style="flex:1; display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.03); border:0.5px solid rgba(255,255,255,0.06); border-radius:12px; padding:14px 18px;">
+              <div id="power-btn-openclaw" style="cursor:pointer; position:relative; width:52px; height:52px; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:transform 0.2s;">
+                <div style="position:absolute; width:100%; height:100%; border-radius:50%; border:1.5px solid ${ocOnline ? '#32d74b' : 'rgba(255,255,255,0.12)'}; opacity:${ocOnline ? '0.2' : '0.5'}; animation:${ocOnline ? 'pulse 2s infinite' : 'none'};"></div>
+                <div style="width:40px; height:40px; border-radius:50%; background:${ocOnline ? 'linear-gradient(135deg,#32d74b,#30d158)' : 'rgba(255,255,255,0.04)'}; display:flex; align-items:center; justify-content:center; transition:all 0.3s; box-shadow:${ocOnline ? '0 4px 16px rgba(50,215,75,0.35), inset 0 1px 0 rgba(255,255,255,0.2)' : '0 2px 12px rgba(0,0,0,0.3), inset 0 2px 4px rgba(0,0,0,0.2)'}; border:1px solid ${ocOnline ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.06)'};">
+                  <div style="color:${ocOnline ? '#fff' : 'var(--text-main)'};">
+                    ${ocOnline
+                      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="6" width="12" height="12"></rect></svg>'
+                      : '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="8 5 19 12 8 19 8 5" fill="rgba(255,255,255,0.9)" stroke="none"></polygon></svg>'}
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:13px; font-weight:600; color:var(--text-main); margin-bottom:2px;">OpenClaw</div>
+                <div style="font-size:11px; color:${ocOnline ? 'var(--online-color)' : 'var(--text-muted)'};">${ocOnline ? `Running :${ocUrl?.replace('http://127.0.0.1', '') || ''}` : 'Not Found'}</div>
+              </div>
+              <button id="openclaw-status-btn" class="glass-btn" style="margin-left:auto; border-radius:8px; padding:6px 14px; font-size:11px; font-weight:600; white-space:nowrap; ${ocOnline ? 'color:var(--online-color);' : ''}">
+                ${ocOnline ? 'Open' : 'N/A'}
+              </button>
             </div>
           </div>
         </div>
@@ -124,8 +149,8 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
         </div>
 
     <style>
-      #power-btn:hover { transform: scale(1.04); }
-      #power-btn:active { transform: scale(0.97); }
+      #power-btn-hermes:hover, #power-btn-openclaw:hover { transform: scale(1.04); }
+      #power-btn-hermes:active, #power-btn-openclaw:active { transform: scale(0.97); }
       #history-btn:hover { background: rgba(255,255,255,0.1); }
       .console-output {
         background: var(--fill-quinary);
@@ -149,11 +174,12 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
     </style>
   `;
 
-  const powerBtn = container.querySelector('#power-btn');
-  if (powerBtn) {
-    powerBtn.addEventListener('click', async () => {
-      if (powerBtn.classList.contains('loading')) return;
-      powerBtn.classList.add('loading');
+  // ── Hermes Power Button (start/stop) ──
+  const hermesPowerBtn = container.querySelector('#power-btn-hermes');
+  if (hermesPowerBtn) {
+    hermesPowerBtn.addEventListener('click', async () => {
+      if (hermesPowerBtn.classList.contains('loading')) return;
+      hermesPowerBtn.classList.add('loading');
       consoleLines = [];
 
       try {
@@ -177,11 +203,12 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
       } catch (err) {
         consoleLines.push(`Error: ${err.message}`);
         updateConsole(container);
-        powerBtn.classList.remove('loading');
+        hermesPowerBtn.classList.remove('loading');
       }
     });
   }
 
+  // ── Hermes Start/Stop Button (startWebUI) ──
   const historyBtn = container.querySelector('#history-btn');
   if (historyBtn) {
     historyBtn.addEventListener('click', async () => {
@@ -203,7 +230,27 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
         consoleLines.push(`Error: ${err.message}`);
         updateConsole(container);
         historyBtn.classList.remove('loading');
-        historyBtn.innerHTML = 'Initialize WebUI';
+        historyBtn.innerHTML = online ? 'Stop' : 'Start';
+      }
+    });
+  }
+
+  // ── OpenClaw Power Button ──
+  const ocPowerBtn = container.querySelector('#power-btn-openclaw');
+  if (ocPowerBtn) {
+    ocPowerBtn.addEventListener('click', () => {
+      if (ocOnline && ocUrl) {
+        window.__navigateTo && window.__navigateTo('openclaw_webui');
+      }
+    });
+  }
+
+  // ── OpenClaw Open/N/A Button ──
+  const ocStatusBtn = container.querySelector('#openclaw-status-btn');
+  if (ocStatusBtn) {
+    ocStatusBtn.addEventListener('click', () => {
+      if (ocOnline && ocUrl) {
+        window.__navigateTo && window.__navigateTo('openclaw_webui');
       }
     });
   }
