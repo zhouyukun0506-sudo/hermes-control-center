@@ -174,12 +174,13 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
     </style>
   `;
 
-  // ── Hermes Power Button (start/stop) ──
-  const hermesPowerBtn = container.querySelector('#power-btn-hermes');
-  if (hermesPowerBtn) {
-    hermesPowerBtn.addEventListener('click', async () => {
-      if (hermesPowerBtn.classList.contains('loading')) return;
-      hermesPowerBtn.classList.add('loading');
+  // ── Hermes Start/Stop (shared by power circle + text button) ──
+  function handleHermesToggle() {
+    return async () => {
+      const btns = [hermesPowerBtn, historyBtn].filter(Boolean);
+      if (btns.some(b => b.classList.contains('loading'))) return;
+      btns.forEach(b => b.classList.add('loading'));
+      if (historyBtn) historyBtn.textContent = online ? 'Stopping...' : 'Starting...';
       consoleLines = [];
 
       try {
@@ -203,37 +204,16 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
       } catch (err) {
         consoleLines.push(`Error: ${err.message}`);
         updateConsole(container);
-        hermesPowerBtn.classList.remove('loading');
+        btns.forEach(b => b.classList.remove('loading'));
+        if (historyBtn) historyBtn.textContent = online ? 'Stop' : 'Start';
       }
-    });
+    };
   }
 
-  // ── Hermes Start/Stop Button (startWebUI) ──
+  const hermesPowerBtn = container.querySelector('#power-btn-hermes');
   const historyBtn = container.querySelector('#history-btn');
-  if (historyBtn) {
-    historyBtn.addEventListener('click', async () => {
-      if (historyBtn.classList.contains('loading')) return;
-      historyBtn.classList.add('loading');
-      historyBtn.textContent = 'Launching...';
-      consoleLines = [];
-
-      try {
-        await api.ctrl.startWebUI((ev) => {
-          if (ev.type === 'stdout' || ev.type === 'stderr') {
-            consoleLines.push(ev.data.trim());
-            updateConsole(container);
-          }
-        });
-        await new Promise((r) => setTimeout(r, 2000));
-        if (onStatusChange) onStatusChange(true);
-      } catch (err) {
-        consoleLines.push(`Error: ${err.message}`);
-        updateConsole(container);
-        historyBtn.classList.remove('loading');
-        historyBtn.innerHTML = online ? 'Stop' : 'Start';
-      }
-    });
-  }
+  if (hermesPowerBtn) hermesPowerBtn.addEventListener('click', handleHermesToggle());
+  if (historyBtn) historyBtn.addEventListener('click', handleHermesToggle());
 
   // ── OpenClaw Power Button ──
   const ocPowerBtn = container.querySelector('#power-btn-openclaw');
