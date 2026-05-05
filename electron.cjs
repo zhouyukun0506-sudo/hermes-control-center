@@ -499,7 +499,7 @@ function createWindow() {
       roundedCorners: true,
     } : {
       backgroundColor: '#0f0f0f',
-      frame: true,
+      frame: false,
     }),
     webPreferences: {
       webSecurity: false,
@@ -537,6 +537,10 @@ function createWindow() {
     if (loaded || !mainWindow) return;
     mainWindow.loadURL(`http://127.0.0.1:${LOCAL_PORT}`).then(() => {
       loaded = true;
+      // Expose ipcRenderer to renderer process
+      mainWindow.webContents.executeJavaScript(`
+        window.electron = { ipcRenderer: require('electron').ipcRenderer };
+      `);
     }).catch(() => {
       if (attempts < 20) setTimeout(() => tryLoad(attempts + 1), 500);
     });
@@ -569,6 +573,13 @@ ipcMain.on('win-close', () => { if (mainWindow) mainWindow.close(); });
 ipcMain.on('win-minimize', () => { if (mainWindow) mainWindow.minimize(); });
 ipcMain.on('win-maximize', () => { if (mainWindow) { mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(); } });
 ipcMain.on('win-fullscreen', () => { if (mainWindow) mainWindow.setFullScreen(!mainWindow.isFullScreen()); });
+ipcMain.on('app-quit', () => {
+  // Kill background processes then quit
+  if (openclawProcess) { try { openclawProcess.kill(); } catch {} openclawProcess = null; }
+  if (shellProcess) { try { shellProcess.kill(); } catch {} shellProcess = null; }
+  isQuitting = true;
+  app.quit();
+});
 
 app.commandLine.appendSwitch('disable-site-isolation-trials');
 

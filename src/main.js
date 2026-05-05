@@ -108,6 +108,18 @@ function initApp() {
       <div class="content-area">
         <div class="titlebar">
           <div id="qa-toolbar" class="titlebar-actions"></div>
+          ${navigator.platform.includes('Win') ? `
+          <div class="win-controls">
+            <button class="win-ctrl-btn" id="win-minimize" title="Minimize">
+              <svg width="10" height="1" viewBox="0 0 10 1"><rect width="10" height="1" fill="currentColor"/></svg>
+            </button>
+            <button class="win-ctrl-btn" id="win-maximize" title="Maximize">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1"><rect x="0.5" y="0.5" width="9" height="9"/></svg>
+            </button>
+            <button class="win-ctrl-btn win-ctrl-close" id="win-close" title="Close">
+              <svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"><line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/></svg>
+            </button>
+          </div>` : ''}
         </div>
         <div id="page-content"></div>
       </div>
@@ -120,6 +132,15 @@ function initApp() {
   initSplitView();
   initGlobalChat();
   initMouseGlow();
+
+  // Window controls (Windows)
+  const winMin = document.getElementById('win-minimize');
+  const winMax = document.getElementById('win-maximize');
+  const winClose = document.getElementById('win-close');
+  if (winMin) winMin.addEventListener('click', () => window.electron?.ipcRenderer?.send('win-minimize'));
+  if (winMax) winMax.addEventListener('click', () => window.electron?.ipcRenderer?.send('win-maximize'));
+  if (winClose) winClose.addEventListener('click', () => window.electron?.ipcRenderer?.send('win-close'));
+
   renderMain();
 }
 

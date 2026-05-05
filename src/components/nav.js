@@ -487,9 +487,14 @@ export function renderNav(container, { activePage, onNavigate, status }) {
     </div>
 
     <div class="sidebar-footer">
-      <div class="status-indicator ${online ? 'online' : 'offline'}">
-        <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0;"></span>
-        <span>${online ? 'Online' : 'Offline'}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+        <div class="status-indicator ${online ? 'online' : 'offline'}">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0;"></span>
+          <span>${online ? 'Online' : 'Offline'}</span>
+        </div>
+        <button class="sidebar-quit-btn" id="sidebar-quit" title="Quit Workbench" style="width:24px;height:24px;border:none;border-radius:5px;background:transparent;color:var(--text-tertiary);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
       </div>
       ${showFooter ? `
       <div class="status-footer-text" style="font-size: 10px; color: var(--text-muted); text-align: center; padding: 0 8px; white-space: nowrap;">
@@ -514,6 +519,19 @@ export function renderNav(container, { activePage, onNavigate, status }) {
   if (tlMin) tlMin.addEventListener('click', (e) => { e.stopPropagation(); window.electronAPI?.minimize(); });
   if (tlMax) tlMax.addEventListener('click', (e) => { e.stopPropagation(); window.electronAPI?.maximize(); });
   if (tlFs) tlFs.addEventListener('click', (e) => { e.stopPropagation(); window.electronAPI?.fullscreen(); });
+
+  // Quit button
+  const quitBtn = container.querySelector('#sidebar-quit');
+  if (quitBtn) {
+    quitBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (window.electron?.ipcRenderer) {
+        window.electron.ipcRenderer.send('app-quit');
+      }
+    });
+    quitBtn.addEventListener('mouseenter', () => { quitBtn.style.color = '#ff453a'; quitBtn.style.background = 'rgba(255,69,58,0.15)'; });
+    quitBtn.addEventListener('mouseleave', () => { quitBtn.style.color = 'var(--text-tertiary)'; quitBtn.style.background = 'transparent'; });
+  }
 
   // Nav click events
   container.querySelectorAll('.nav-item').forEach((el) => {
