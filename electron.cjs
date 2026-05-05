@@ -81,10 +81,19 @@ function checkHealth() {
 }
 
 function checkGateway() {
-  try {
-    if (process.platform === 'win32') return false;
-    return execSync('launchctl list | grep ai.hermes.gateway', { encoding: 'utf-8' }).length > 0;
-  } catch { return false; }
+  return new Promise(r => {
+    if (process.platform === 'win32') {
+      // On Windows, check if gateway port (8787) is listening
+      http.get('http://127.0.0.1:8787/health', { timeout: 1500 }, res => {
+        let d = ''; res.on('data', c => d += c);
+        res.on('end', () => r(true));
+      }).on('error', () => r(false));
+    } else {
+      try {
+        r(execSync('launchctl list | grep ai.hermes.gateway', { encoding: 'utf-8' }).length > 0);
+      } catch { r(false); }
+    }
+  });
 }
 
 function getStats() {
@@ -98,11 +107,11 @@ function getStats() {
 }
 
 // ── OpenClaw WebUI Detection ──
-const OPENCLAW_PORTS = [3000, 5173, 5174, 8080, 8888, 9000];
+const OPENCLAW_PORTS = [3000, 3001, 4000, 5173, 5174, 5175, 8080, 8081, 8888, 9000, 9090, 10000];
 
 function checkPort(port) {
   return new Promise(r => {
-    const req = http.get(`http://127.0.0.1:${port}/`, { timeout: 1500 }, res => {
+    const req = http.get(`http://127.0.0.1:${port}/`, { timeout: 1000 }, res => {
       let d = ''; res.on('data', c => d += c);
       res.on('end', () => r({ running: true, port }));
     });
@@ -117,6 +126,33 @@ async function detectOpenClaw() {
   return found
     ? { running: true, port: found.port, url: `http://127.0.0.1:${found.port}` }
     : { running: false, port: null, url: null };
+}
+
+// ── OpenClaw Start ──
+function startOpenClaw() {
+  return new Promise(r => {
+    const isWin = process.platform === 'win32';
+    let child;
+    if (isWin) {
+      child = spawn('cmd.exe', ['/c', 'openclaw'], {
+        env: { ...process.env, PATH: `${process.env.APPDATA}\\npm;${process.env.PATH}` },
+        detached: true,
+        stdio: 'ignore',
+      });
+    } else {
+      child = spawn('openclaw', [], {
+        env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` },
+        detached: true,
+        stdio: 'ignore',
+      });
+    }
+    child.unref();
+    // Give it a moment to start, then check
+    setTimeout(async () => {
+      const oc = await detectOpenClaw();
+      r(oc);
+    }, 3000);
+  });
 }
 
 // ── Calendar ──
@@ -160,7 +196,7 @@ const server = http.createServer(async (req, res) => {
   // ── API Routes ──
 
   if (pathname === '/ctrl/status') {
-    const [h, g, s, oc] = await Promise.all([checkHealth(), Promise.resolve(checkGateway()), Promise.resolve(getStats()), detectOpenClaw()]);
+    const [h, g, s, oc] = await Promise.all([checkHealth(), checkGateway(), Promise.resolve(getStats()), detectOpenClaw()]);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ gateway_running: g, webui_running: h.online, webui_status: h.online ? h : null, stats: s, openclaw_running: oc.running, openclaw_url: oc.url, timestamp: Date.now() }));
     return;
@@ -170,6 +206,28 @@ const server = http.createServer(async (req, res) => {
     const oc = await detectOpenClaw();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(oc));
+    return;
+  }
+
+  if (pathname === '/ctrl/openclaw/start' && req.method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+    res.flushHeaders();
+    const send = (t, d) => res.write(`data: ${JSON.stringify({ type: t, data: d })}\n\n`);
+    send('stdout', 'Starting OpenClaw...\n');
+    try {
+      const oc = await startOpenClaw();
+      if (oc.running) {
+        send('stdout', `OpenClaw detected on port ${oc.port}\n`);
+        send('done', { code: 0, ...oc });
+      } else {
+        send('stderr', 'OpenClaw started but not detected on scanned ports\n');
+        send('done', { code: 1 });
+      }
+    } catch (err) {
+      send('stderr', `Failed to start OpenClaw: ${err.message}\n`);
+      send('done', { code: 1 });
+    }
+    res.end();
     return;
   }
 

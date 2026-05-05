@@ -79,7 +79,7 @@ app.use((req, res, next) => {
 });
 
 // ── OpenClaw WebUI Detection ──
-const OPENCLAW_PORTS = [3000, 5173, 5174, 8080, 8888, 9000];
+const OPENCLAW_PORTS = [3000, 3001, 4000, 5173, 5174, 5175, 8080, 8081, 8888, 9000, 9090, 10000];
 
 function checkPort(port) {
   return new Promise(r => {
@@ -98,6 +98,21 @@ async function detectOpenClaw() {
   return found
     ? { running: true, port: found.port, url: `http://127.0.0.1:${found.port}` }
     : { running: false, port: null, url: null };
+}
+
+function startOpenClaw() {
+  return new Promise(r => {
+    const child = spawn('openclaw', [], {
+      env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` },
+      detached: true,
+      stdio: 'ignore',
+    });
+    child.unref();
+    setTimeout(async () => {
+      const oc = await detectOpenClaw();
+      r(oc);
+    }, 3000);
+  });
 }
 
 // ── Status Checks ──
@@ -129,6 +144,29 @@ app.get('/ctrl/status', async (req, res) => {
 app.get('/ctrl/openclaw/status', async (req, res) => {
   const oc = await detectOpenClaw();
   res.json(oc);
+});
+
+app.post('/ctrl/openclaw/start', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  const send = (t, d) => res.write(`data: ${JSON.stringify({ type: t, data: d })}\n\n`);
+  send('stdout', 'Starting OpenClaw...\n');
+  try {
+    const oc = await startOpenClaw();
+    if (oc.running) {
+      send('stdout', `OpenClaw detected on port ${oc.port}\n`);
+      send('done', { code: 0, ...oc });
+    } else {
+      send('stderr', 'OpenClaw started but not detected on scanned ports\n');
+      send('done', { code: 1 });
+    }
+  } catch (err) {
+    send('stderr', `Failed to start OpenClaw: ${err.message}\n`);
+    send('done', { code: 1 });
+  }
+  res.end();
 });
 
 app.get('/ctrl/logs', (req, res) => {

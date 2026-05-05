@@ -215,12 +215,31 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
   if (hermesPowerBtn) hermesPowerBtn.addEventListener('click', handleHermesToggle());
   if (historyBtn) historyBtn.addEventListener('click', handleHermesToggle());
 
-  // ── OpenClaw Power Button ──
+  // ── OpenClaw Power Button (start or navigate) ──
   const ocPowerBtn = container.querySelector('#power-btn-openclaw');
   if (ocPowerBtn) {
-    ocPowerBtn.addEventListener('click', () => {
+    ocPowerBtn.addEventListener('click', async () => {
       if (ocOnline && ocUrl) {
         window.__navigateTo && window.__navigateTo('openclaw_webui');
+        return;
+      }
+      // Not running — try to start
+      if (ocPowerBtn.classList.contains('loading')) return;
+      ocPowerBtn.classList.add('loading');
+      consoleLines = [];
+      try {
+        await api.ctrl.startOpenclaw((ev) => {
+          if (ev.type === 'stdout' || ev.type === 'stderr') {
+            consoleLines.push(ev.data.trim());
+            updateConsole(container);
+          }
+        });
+        await new Promise(r => setTimeout(r, 2000));
+        if (onStatusChange) onStatusChange(true);
+      } catch (err) {
+        consoleLines.push(`Error: ${err.message}`);
+        updateConsole(container);
+        ocPowerBtn.classList.remove('loading');
       }
     });
   }
@@ -228,9 +247,30 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
   // ── OpenClaw Open/N/A Button ──
   const ocStatusBtn = container.querySelector('#openclaw-status-btn');
   if (ocStatusBtn) {
-    ocStatusBtn.addEventListener('click', () => {
+    ocStatusBtn.addEventListener('click', async () => {
       if (ocOnline && ocUrl) {
         window.__navigateTo && window.__navigateTo('openclaw_webui');
+        return;
+      }
+      // Not running — try to start
+      if (ocStatusBtn.classList.contains('loading')) return;
+      ocStatusBtn.classList.add('loading');
+      ocStatusBtn.textContent = 'Starting...';
+      consoleLines = [];
+      try {
+        await api.ctrl.startOpenclaw((ev) => {
+          if (ev.type === 'stdout' || ev.type === 'stderr') {
+            consoleLines.push(ev.data.trim());
+            updateConsole(container);
+          }
+        });
+        await new Promise(r => setTimeout(r, 2000));
+        if (onStatusChange) onStatusChange(true);
+      } catch (err) {
+        consoleLines.push(`Error: ${err.message}`);
+        updateConsole(container);
+        ocStatusBtn.classList.remove('loading');
+        ocStatusBtn.textContent = 'N/A';
       }
     });
   }
