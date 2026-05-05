@@ -46,6 +46,17 @@ npm run electron   # Desktop app
 npm run dev        # Browser (localhost:3456)
 ```
 
+### Pre-built Windows Executable (no Node.js required)
+
+Download from [Releases](https://github.com/zhouyukun0506-sudo/hermes-control-center/releases/tag/v1.4.0):
+
+| File | Architecture |
+|------|-------------|
+| `workbench-win-x64.zip` | Intel / AMD 64-bit |
+| `workbench-win-arm64.zip` | ARM (Surface, Snapdragon) |
+
+Extract the zip and run `Workbench.exe`.
+
 ---
 
 ## Overview
