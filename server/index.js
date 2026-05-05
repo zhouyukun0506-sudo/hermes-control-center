@@ -153,6 +153,23 @@ function startOpenClaw() {
   });
 }
 
+function stopOpenClaw() {
+  return new Promise((resolve, reject) => {
+    const child = spawn('openclaw', ['gateway', 'stop'], {
+      env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` },
+      timeout: 10000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stderr = '';
+    child.stderr.on('data', d => { stderr += d.toString(); });
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(stderr || `Exit code ${code}`));
+    });
+    child.on('error', (err) => reject(err));
+  });
+}
+
 // ── Status Checks ──
 function checkHealth() {
   return new Promise(r => {
@@ -204,6 +221,24 @@ app.post('/ctrl/openclaw/start', async (req, res) => {
     }
   } catch (err) {
     send('stderr', `Failed to start OpenClaw: ${err.message}\n`);
+    send('done', { code: 1 });
+  }
+  res.end();
+});
+
+app.post('/ctrl/openclaw/stop', async (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  const send = (t, d) => res.write(`data: ${JSON.stringify({ type: t, data: d })}\n\n`);
+  send('stdout', 'Stopping OpenClaw...\n');
+  try {
+    await stopOpenClaw();
+    send('stdout', 'OpenClaw stopped\n');
+    send('done', { code: 0 });
+  } catch (err) {
+    send('stderr', `Failed to stop OpenClaw: ${err.message}\n`);
     send('done', { code: 1 });
   }
   res.end();

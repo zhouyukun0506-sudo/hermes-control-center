@@ -221,25 +221,32 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
   if (hermesPowerBtn) hermesPowerBtn.addEventListener('click', handleHermesToggle());
   if (historyBtn) historyBtn.addEventListener('click', handleHermesToggle());
 
-  // ── OpenClaw Power Button (start or navigate) ──
+  // ── OpenClaw Power Button (start/stop) ──
   const ocPowerBtn = container.querySelector('#power-btn-openclaw');
   if (ocPowerBtn) {
     ocPowerBtn.addEventListener('click', async () => {
-      if (ocOnline && ocUrl) {
-        window.__navigateTo && window.__navigateTo('openclaw_webui');
-        return;
-      }
-      // Not running — try to start
       if (ocPowerBtn.classList.contains('loading')) return;
       ocPowerBtn.classList.add('loading');
       consoleLines = [];
+
       try {
-        await api.ctrl.startOpenclaw((ev) => {
-          if (ev.type === 'stdout' || ev.type === 'stderr') {
-            consoleLines.push(ev.data.trim());
-            updateConsole(container);
-          }
-        });
+        if (ocOnline) {
+          // Stop OpenClaw
+          await api.ctrl.stopOpenclaw((ev) => {
+            if (ev.type === 'stdout' || ev.type === 'stderr') {
+              consoleLines.push(ev.data.trim());
+              updateConsole(container);
+            }
+          });
+        } else {
+          // Start OpenClaw
+          await api.ctrl.startOpenclaw((ev) => {
+            if (ev.type === 'stdout' || ev.type === 'stderr') {
+              consoleLines.push(ev.data.trim());
+              updateConsole(container);
+            }
+          });
+        }
         await new Promise(r => setTimeout(r, 2000));
         if (onStatusChange) onStatusChange(true);
       } catch (err) {
@@ -250,7 +257,7 @@ export function renderDashboard(container, { status, onStatusChange, onNavigate 
     });
   }
 
-  // ── OpenClaw Open/N/A Button ──
+  // ── OpenClaw Open/Stop Button ──
   const ocStatusBtn = container.querySelector('#openclaw-status-btn');
   if (ocStatusBtn) {
     ocStatusBtn.addEventListener('click', async () => {

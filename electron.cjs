@@ -168,6 +168,30 @@ function startOpenClaw() {
   });
 }
 
+// ── OpenClaw Stop ──
+function stopOpenClaw() {
+  return new Promise((resolve, reject) => {
+    const isWin = process.platform === 'win32';
+    const env = { ...process.env };
+    if (isWin) env.PATH = `${process.env.APPDATA || ''}\\npm;${env.PATH || ''}`;
+    else env.PATH = `${HOME}/bin:${HOME}/.local/bin:${env.PATH}`;
+
+    const child = spawn('openclaw', ['gateway', 'stop'], {
+      env,
+      timeout: 10000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = '', stderr = '';
+    child.stdout.on('data', d => { stdout += d.toString(); });
+    child.stderr.on('data', d => { stderr += d.toString(); });
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(stderr || stdout || `Exit code ${code}`));
+    });
+    child.on('error', (err) => reject(err));
+  });
+}
+
 // Get the dashboard URL with token by running `openclaw dashboard --no-open`
 function getOpenClawDashboardUrl(port) {
   return new Promise(r => {
@@ -287,6 +311,23 @@ const server = http.createServer(async (req, res) => {
       }
     } catch (err) {
       send('stderr', `Failed to start OpenClaw: ${err.message}\n`);
+      send('done', { code: 1 });
+    }
+    res.end();
+    return;
+  }
+
+  if (pathname === '/ctrl/openclaw/stop' && req.method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+    res.flushHeaders();
+    const send = (t, d) => res.write(`data: ${JSON.stringify({ type: t, data: d })}\n\n`);
+    send('stdout', 'Stopping OpenClaw...\n');
+    try {
+      await stopOpenClaw();
+      send('stdout', 'OpenClaw stopped\n');
+      send('done', { code: 0 });
+    } catch (err) {
+      send('stderr', `Failed to stop OpenClaw: ${err.message}\n`);
       send('done', { code: 1 });
     }
     res.end();

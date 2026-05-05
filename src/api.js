@@ -57,6 +57,7 @@ export const ctrl = {
   exec: (command) => postJSON('/ctrl/exec', { command }),
   openclaw: () => fetchJSON('/ctrl/openclaw/status'),
   startOpenclaw: (onData) => streamPost('/ctrl/openclaw/start', onData),
+  stopOpenclaw: (onData) => streamPost('/ctrl/openclaw/stop', onData),
 };
 
 export const sessions = {
