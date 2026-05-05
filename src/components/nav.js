@@ -523,10 +523,12 @@ export function renderNav(container, { activePage, onNavigate, status }) {
   // Quit button
   const quitBtn = container.querySelector('#sidebar-quit');
   if (quitBtn) {
-    quitBtn.addEventListener('click', (e) => {
+    quitBtn.addEventListener('click', async (e) => {
       e.stopPropagation();
       if (window.electron?.ipcRenderer) {
         window.electron.ipcRenderer.send('app-quit');
+      } else {
+        fetch('/ctrl/quit', { method: 'POST' }).catch(() => {});
       }
     });
     quitBtn.addEventListener('mouseenter', () => { quitBtn.style.color = '#ff453a'; quitBtn.style.background = 'rgba(255,69,58,0.15)'; });

@@ -471,6 +471,15 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === '/ctrl/quit' && req.method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ success: true }));
+    if (shellProcess) { try { shellProcess.kill(); } catch {} shellProcess = null; }
+    if (openclawProcess) { try { process.kill(-openclawProcess.pid, 'SIGTERM'); } catch {} openclawProcess = null; }
+    setTimeout(() => { isQuitting = true; app.quit(); }, 300);
+    return;
+  }
+
   // ── Static files from dist/ ──
   const distDir = path.join(__dirname, 'dist');
   let filePath = path.join(distDir, pathname === '/' ? 'index.html' : pathname.split('?')[0]);

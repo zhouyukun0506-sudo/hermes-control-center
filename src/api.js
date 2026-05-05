@@ -58,6 +58,7 @@ export const ctrl = {
   openclaw: () => fetchJSON('/ctrl/openclaw/status'),
   startOpenclaw: (onData) => streamPost('/ctrl/openclaw/start', onData),
   stopOpenclaw: (onData) => streamPost('/ctrl/openclaw/stop', onData),
+  quit: () => fetch(`${BASE}/ctrl/quit`, { method: 'POST' }).then(r => r.json()),
 };
 
 export const sessions = {

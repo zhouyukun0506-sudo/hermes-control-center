@@ -392,6 +392,23 @@ app.use(createProxyMiddleware({
   on: { proxyReq: (p) => { p.setHeader('Origin', HERMES_WEBUI); p.setHeader('Host', 'localhost:8787'); } }
 }));
 
+// ── Quit Endpoint (kills background processes, then shuts down server) ──
+app.post('/ctrl/quit', (req, res) => {
+  res.json({ success: true });
+  // Kill shell process
+  if (shellProcess) {
+    try { shellProcess.kill(); } catch {}
+    shellProcess = null;
+  }
+  // Kill openclaw process
+  if (openclawProcess) {
+    try { process.kill(-openclawProcess.pid, 'SIGTERM'); } catch {}
+    openclawProcess = null;
+  }
+  // Give response a moment to flush, then exit
+  setTimeout(() => process.exit(0), 300);
+});
+
 const distPath = path.join(__dirname, '..', 'dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath));
