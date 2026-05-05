@@ -10,6 +10,17 @@ A premium productivity workspace powered by Hermes Agent, featuring macOS 26 Liq
 
 ## Quick Install
 
+### Prerequisites
+
+| Platform | Git | Node.js |
+|----------|-----|---------|
+| macOS | `xcode-select --install` | `brew install node` |
+| Windows | `winget install Git.Git` | `winget install OpenJS.NodeJS.LTS` |
+| Linux (Ubuntu/Debian) | `sudo apt install git` | `sudo apt install nodejs npm` |
+| Linux (Fedora) | `sudo dnf install git` | `sudo dnf install nodejs npm` |
+
+> Restart your terminal after installing prerequisites.
+
 ### macOS / Linux
 
 ```bash
@@ -22,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/zhouyukun0506-sudo/hermes-control-c
 irm https://raw.githubusercontent.com/zhouyukun0506-sudo/hermes-control-center/main/install.ps1 | iex
 ```
 
-After install:
+### After install
 
 ```bash
 cd ~/.hermes-control && npm run electron   # Desktop app
