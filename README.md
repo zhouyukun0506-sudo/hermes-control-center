@@ -36,8 +36,14 @@ irm https://raw.githubusercontent.com/zhouyukun0506-sudo/hermes-control-center/m
 ### After install
 
 ```bash
+# macOS / Linux
 cd ~/.hermes-control && npm run electron   # Desktop app
 cd ~/.hermes-control && npm run dev        # Browser (localhost:3456)
+
+# Windows PowerShell
+cd $env:USERPROFILE\.hermes-control
+npm run electron   # Desktop app
+npm run dev        # Browser (localhost:3456)
 ```
 
 ---

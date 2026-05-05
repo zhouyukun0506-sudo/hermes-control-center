@@ -56,18 +56,23 @@ if (Test-Path $InstallDir) {
     Set-Location $InstallDir
 }
 
+# Install dependencies (skip Electron on Windows to avoid SSL issues — can install later)
 Write-Host "  Installing dependencies..." -ForegroundColor Cyan
-npm install
+$env:ELECTRON_SKIP_BINARY_DOWNLOAD = "1"
+npm install --ignore-scripts
+npm install electron @electron/get --save-dev
 
 Write-Host "  Building frontend..." -ForegroundColor Cyan
-npm run build
+npx vite build
 
 Write-Host ""
 Write-Host "  Done! Installed to $InstallDir" -ForegroundColor Green
 Write-Host ""
 Write-Host "  Start the desktop app:" -ForegroundColor Yellow
-Write-Host "    cd $InstallDir && npm run electron" -ForegroundColor White
+Write-Host "    cd $InstallDir" -ForegroundColor White
+Write-Host "    npm run electron" -ForegroundColor White
 Write-Host ""
 Write-Host "  Or run in browser:" -ForegroundColor Yellow
-Write-Host "    cd $InstallDir && npm run dev" -ForegroundColor White
+Write-Host "    cd $InstallDir" -ForegroundColor White
+Write-Host "    npm run dev" -ForegroundColor White
 Write-Host ""
