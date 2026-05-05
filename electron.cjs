@@ -9,6 +9,8 @@ let tray = null;
 let isQuitting = false;
 const LOCAL_PORT = 3456;
 const HOME = process.env.USERPROFILE || process.env.HOME || '';
+const HERMES_UP = path.join(HOME, 'bin', 'hermes-up');
+const HERMES_KILL = path.join(HOME, 'bin', 'hermes-kill');
 
 // ── Terminal PTY ──
 let shellProcess = null;
@@ -264,6 +266,30 @@ const server = http.createServer(async (req, res) => {
     saveCalendar(data);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true }));
+    return;
+  }
+
+  // ── Hermes Start (hermes-up) ──
+  if (pathname === '/ctrl/start' && req.method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+    res.flushHeaders();
+    const child = spawn(HERMES_UP, ['-n'], { shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh', env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` } });
+    const send = (t, d) => res.write(`data: ${JSON.stringify({ type: t, data: d })}\n\n`);
+    child.stdout.on('data', d => { send('stdout', d.toString()); broadcastLog('stdout', d.toString()); });
+    child.stderr.on('data', d => { send('stderr', d.toString()); broadcastLog('stderr', d.toString()); });
+    child.on('close', c => { send('done', { code: c }); res.end(); });
+    return;
+  }
+
+  // ── Hermes Stop (hermes-kill) ──
+  if (pathname === '/ctrl/stop' && req.method === 'POST') {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
+    res.flushHeaders();
+    const child = spawn(HERMES_KILL, [], { shell: process.platform === 'win32' ? 'cmd.exe' : '/bin/zsh', env: { ...process.env, PATH: `${HOME}/bin:${HOME}/.local/bin:${process.env.PATH}` } });
+    const send = (t, d) => res.write(`data: ${JSON.stringify({ type: t, data: d })}\n\n`);
+    child.stdout.on('data', d => { send('stdout', d.toString()); broadcastLog('stdout', d.toString()); });
+    child.stderr.on('data', d => { send('stderr', d.toString()); broadcastLog('stderr', d.toString()); });
+    child.on('close', c => { send('done', { code: c }); res.end(); });
     return;
   }
 
