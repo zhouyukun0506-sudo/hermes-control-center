@@ -10,6 +10,30 @@ let isQuitting = false;
 let openclawProcess = null;
 const LOCAL_PORT = 3456;
 const HOME = process.env.USERPROFILE || process.env.HOME || '';
+const APP_DATA_DIR = path.join(HOME, 'Library', 'Application Support', 'workbench');
+
+function dirSize(dirPath) {
+  if (!fs.existsSync(dirPath)) return 0;
+  let total = 0;
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    for (const e of entries) {
+      const full = path.join(dirPath, e.name);
+      if (e.isSymbolicLink()) continue;
+      if (e.isDirectory()) { total += dirSize(full); }
+      else { try { total += fs.statSync(full).size; } catch {} }
+    }
+  } catch {}
+  return total;
+}
+
+function fmt(bytes) {
+  if (bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0, s = bytes;
+  while (s >= 1024 && i < units.length - 1) { s /= 1024; i++; }
+  return s.toFixed(i > 0 ? 1 : 0) + ' ' + units[i];
+}
 const HERMES_UP = path.join(HOME, 'bin', 'hermes-up');
 const HERMES_KILL = path.join(HOME, 'bin', 'hermes-kill');
 
@@ -480,6 +504,69 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── Storage & Cache ──
+  const STORAGE_CATEGORIES = {
+    'GPU Cache':      ['GPUCache', 'DawnWebGPUCache', 'DawnGraphiteCache'],
+    'Code Cache':     ['Code Cache'],
+    'System Cache':   ['Cache'],
+    'Service Worker': ['Service Worker'],
+    'Web Storage':    ['Local Storage', 'Session Storage', 'WebStorage'],
+    'Cookies':        ['Cookies', 'Cookies-journal'],
+    'Network & Misc': ['Network Persistent State', 'TransportSecurity', 'Trust Tokens', 'Trust Tokens-journal'],
+  };
+  const CLEAR_CATEGORIES = ['GPU Cache', 'Code Cache', 'System Cache', 'Service Worker'];
+
+  if (pathname === '/ctrl/storage' && req.method === 'GET') {
+    try {
+      const categories = {};
+      let total = 0;
+      for (const [label, names] of Object.entries(STORAGE_CATEGORIES)) {
+        let catSize = 0;
+        for (const name of names) {
+          catSize += dirSize(path.join(APP_DATA_DIR, name));
+        }
+        categories[label] = { bytes: catSize, formatted: fmt(catSize) };
+        total += catSize;
+      }
+      const appSize = dirSize(path.join(__dirname, '..'));
+      const clearable = CLEAR_CATEGORIES.reduce((s, c) => s + (categories[c]?.bytes || 0), 0);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({
+        appDataPath: APP_DATA_DIR, totalBytes: total, totalFormatted: fmt(total),
+        appBundleBytes: appSize, appBundleFormatted: fmt(appSize),
+        grandTotalBytes: total + appSize, grandTotalFormatted: fmt(total + appSize),
+        categories, clearableCategories: CLEAR_CATEGORIES,
+        clearableBytes: clearable, clearableFormatted: fmt(clearable),
+      }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  if (pathname === '/ctrl/clear-cache' && req.method === 'POST') {
+    let cleared = 0;
+    const clearedList = [];
+    try {
+      for (const cat of CLEAR_CATEGORIES) {
+        for (const name of STORAGE_CATEGORIES[cat]) {
+          const dir = path.join(APP_DATA_DIR, name);
+          if (fs.existsSync(dir)) {
+            const before = dirSize(dir);
+            try { fs.rmSync(dir, { recursive: true, force: true }); cleared += before; clearedList.push({ name, freed: fmt(before) }); } catch {}
+          }
+        }
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: true, clearedBytes: cleared, clearedFormatted: fmt(cleared), cleared: clearedList }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
   // ── Static files from dist/ ──
   const distDir = path.join(__dirname, 'dist');
   let filePath = path.join(distDir, pathname === '/' ? 'index.html' : pathname.split('?')[0]);
@@ -607,6 +694,16 @@ ipcMain.on('app-quit', () => {
 });
 
 app.commandLine.appendSwitch('disable-site-isolation-trials');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-features', [
+  'WebRTC', 'Translate', 'SpellCheckService', 'WebAuthn', 'SafeBrowsing',
+  'InterestFeedContentSuggestions', 'WebPayments', 'OptimizationHints',
+  'MediaRouter', 'NotificationTriggers', 'PreloadMediaEngagementData',
+  'AutofillServerCommunication', 'Sync',
+].join(','));
 
 app.whenReady().then(() => {
   server.listen(LOCAL_PORT, '127.0.0.1', () => {

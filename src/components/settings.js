@@ -216,6 +216,28 @@ export function renderSettings(container) {
           </div>
         </div>
 
+        <!-- Storage -->
+        <div id="storage-card" class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
+          <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
+            <div style="width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, #30D158, #0087FF); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9.5" cy="9.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+            </div>
+            <div class="section-header" style="margin-bottom: 0;">
+              <div style="font-weight: 700; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--text-main);">Storage</div>
+              <div style="font-size: 11px; color: var(--text-muted); font-weight: 400;">App data & cache usage breakdown</div>
+            </div>
+          </div>
+          <div id="storage-chart-area" style="padding: 16px 20px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+            <div style="font-size: 12px; color: var(--text-muted); text-align: center; width: 100%;">Loading...</div>
+          </div>
+          <div style="border-top: 1px solid rgba(255,255,255,0.04); padding: 12px 20px; display: flex; gap: 10px;">
+            <button id="storage-btn-clear" class="btn" style="flex:1; background:rgba(255,69,58,0.1); color:#FF453A; border:1px solid rgba(255,69,58,0.18); border-radius:10px; padding:9px 16px; font-size:13px; font-weight:500; cursor:pointer; font-family:inherit; transition:all .15s;">Clear System Cache</button>
+            <button id="storage-btn-refresh" class="btn" style="width:40px; background:rgba(120,120,128,0.1); color:var(--text-secondary); border:1px solid rgba(120,120,128,0.12); border-radius:10px; padding:9px 0; font-size:13px; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; transition:all .15s;" title="Refresh">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            </button>
+          </div>
+        </div>
+
         <!-- Data -->
         <div class="card" style="padding: 0; margin-bottom: 20px; overflow: hidden;">
           <div style="padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 12px;">
@@ -260,6 +282,9 @@ export function renderSettings(container) {
   `;
 
   // ── Event handlers ──
+
+  // Storage card — donut chart + cache clearing
+  initStorageCard(container);
 
   // Theme customizer
   container.querySelector('#settings-open-theme').addEventListener('click', () => {
@@ -710,6 +735,124 @@ function applySetting(key, val) {
       document.body.classList.toggle('compact-mode', val === true || val === 'true');
       break;
   }
+}
+
+// ── Storage Card ──
+
+const CAT_COLORS = {
+  'GPU Cache':      '#0087FF',
+  'Code Cache':     '#30D158',
+  'System Cache':   '#FF9F0A',
+  'Service Worker': '#BF5AF2',
+  'Web Storage':    '#FF375F',
+  'Cookies':        '#64D2FF',
+  'Network & Misc': '#8E8E93',
+};
+
+function fsize(bytes) {
+  if (!bytes || bytes <= 0) return '0 B';
+  const u = ['B', 'KB', 'MB', 'GB'];
+  let i = 0, s = bytes;
+  while (s >= 1024 && i < u.length - 1) { s /= 1024; i++; }
+  return s.toFixed(i > 0 ? 1 : 0) + ' ' + u[i];
+}
+
+function buildDonut(categories) {
+  const entries = Object.entries(categories).filter(([,v]) => v.bytes > 0);
+  if (!entries.length) return '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:20px;">No data yet</div>';
+
+  const total = entries.reduce((s, [,v]) => s + v.bytes, 0) || 1;
+  const r = 44, cx = 52, cy = 52, full = 2 * Math.PI;
+  let offset = -Math.PI / 2;
+  const slices = [];
+  for (const [label, info] of entries) {
+    const pct = info.bytes / total;
+    const len = full * pct;
+    const x1 = cx + r * Math.cos(offset);
+    const y1 = cy + r * Math.sin(offset);
+    const x2 = cx + r * Math.cos(offset + len);
+    const y2 = cy + r * Math.sin(offset + len);
+    const large = len > Math.PI ? 1 : 0;
+    slices.push({ label, pct, x1, y1, x2, y2, large, color: CAT_COLORS[label] || '#8E8E93' });
+    offset += len;
+  }
+  let paths = '';
+  for (const s of slices) {
+    paths += `<path d="M${cx},${cy} L${s.x1},${s.y1} A${r},${r} 0 ${s.large},1 ${s.x2},${s.y2} Z" fill="${s.color}" opacity="0.85" stroke="var(--glass-card)" stroke-width="1"/>\n`;
+  }
+  const donut = `<svg width="104" height="104" viewBox="0 0 104 104" style="flex-shrink:0;">
+    <circle cx="${cx}" cy="${cy}" r="30" fill="var(--glass-bg-dark, rgba(20,20,20,0.8))"/>
+    ${paths}
+    <circle cx="${cx}" cy="${cy}" r="30" fill="var(--glass-bg-dark, rgba(20,20,20,0.8))"/>
+    <text x="${cx}" y="${cy + 2}" text-anchor="middle" fill="var(--text-main)" font-size="12" font-weight="700">${fsize(total)}</text>
+    <text x="${cx}" y="${cy + 15}" text-anchor="middle" fill="var(--text-muted)" font-size="9">total</text>
+  </svg>`;
+  let legend = '';
+  for (const [label, info] of entries) {
+    const pct = ((info.bytes / total) * 100).toFixed(1);
+    legend += `<div style="display:flex;align-items:center;gap:6px;font-size:11px;">
+      <span style="width:8px;height:8px;border-radius:2px;background:${CAT_COLORS[label]||'#8E8E93'};flex-shrink:0;"></span>
+      <span style="color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${label}</span>
+      <span style="color:var(--text-muted);margin-left:auto;white-space:nowrap;">${info.formatted}</span>
+      <span style="color:var(--text-tertiary);width:36px;text-align:right;white-space:nowrap;">${pct}%</span>
+    </div>`;
+  }
+  return donut + '<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' + legend + '</div>';
+}
+
+function initStorageCard(container) {
+  const area = container.querySelector('#storage-chart-area');
+  const clearBtn = container.querySelector('#storage-btn-clear');
+  const refreshBtn = container.querySelector('#storage-btn-refresh');
+  if (!area) return;
+
+  async function loadData() {
+    try {
+      const r = await fetch('/ctrl/storage');
+      const d = await r.json();
+      area.innerHTML = buildDonut(d.categories);
+      if (clearBtn) {
+        if (d.clearableBytes > 0) {
+          clearBtn.textContent = 'Clear System Cache  (' + d.clearableFormatted + ')';
+          clearBtn.style.opacity = '1';
+        } else {
+          clearBtn.textContent = 'Clear System Cache';
+          clearBtn.style.opacity = '0.5';
+        }
+      }
+    } catch {
+      area.innerHTML = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:12px;width:100%;">API unavailable</div>';
+    }
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', async () => {
+      clearBtn.textContent = 'Clearing...';
+      clearBtn.style.opacity = '0.6';
+      clearBtn.disabled = true;
+      try {
+        const r = await fetch('/ctrl/clear-cache', { method: 'POST' });
+        const d = await r.json();
+        const msg = d.success && d.clearedBytes > 0 ? 'Freed ' + d.clearedFormatted : 'Cache already empty';
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;color:#fff;backdrop-filter:blur(12px);animation:fadeIn .2s ease;pointer-events:none;background:rgba(50,215,75,0.85);';
+        t.textContent = msg;
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 1800);
+        await loadData();
+      } catch {
+        const t = document.createElement('div');
+        t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;color:#fff;backdrop-filter:blur(12px);animation:fadeIn .2s ease;pointer-events:none;background:rgba(255,69,58,0.85);';
+        t.textContent = 'Failed to clear cache';
+        document.body.appendChild(t);
+        setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 1800);
+      }
+      clearBtn.disabled = false;
+    });
+  }
+
+  if (refreshBtn) refreshBtn.addEventListener('click', loadData);
+  loadData();
 }
 
 // Apply saved settings on load
